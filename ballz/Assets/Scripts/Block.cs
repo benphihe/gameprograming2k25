@@ -9,28 +9,56 @@ public class Block : MonoBehaviour
     
     private GameManager gameManager;
     
+    void Awake()
+    {
+        if (spriteRenderer == null)
+            spriteRenderer = GetComponent<SpriteRenderer>();
+    }
+    
     void Start()
     {
-        gameManager = FindObjectOfType<GameManager>();
+        gameManager = FindAnyObjectByType<GameManager>();
+        Debug.Log("Block.Start() called. GameManager: " + gameManager); // [DEBUG]
     }
     
     public void Initialize(int value, Color color)
     {
         hitPoints = value;
-        valueText.text = value.ToString();
-        spriteRenderer.color = color;
+        if (valueText != null)
+        {
+            valueText.text = value.ToString();
+        }
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color = color;
+        }
+        else
+        {
+            Debug.LogWarning("SpriteRenderer not found on Block");
+        }
+        Debug.Log("Block.Initialize() called. hitPoints: " + hitPoints + ", color: " + color); // [DEBUG]
     }
     
     public void TakeDamage()
     {
         hitPoints--;
-        valueText.text = hitPoints.ToString();
+        if (valueText != null)
+        {
+            valueText.text = hitPoints.ToString();
+        }
+        Debug.Log("Block.TakeDamage() called. hitPoints: " + hitPoints); // [DEBUG]
         
         if (hitPoints <= 0)
         {
-            gameManager.BlockDestroyed(hitPoints);
+            if (gameManager != null)
+                gameManager.BlockDestroyed(hitPoints);
+            
             Destroy(gameObject);
         }
     }
-    
+
+    void OnDestroy()
+    {
+        Debug.Log("Block.OnDestroy() called. Block destroyed: " + gameObject.name); // [DEBUG]
+    }
 }
