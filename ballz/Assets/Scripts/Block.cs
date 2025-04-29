@@ -8,6 +8,7 @@ public class Block : MonoBehaviour
     public SpriteRenderer spriteRenderer;
     
     private GameManager gameManager;
+    private int initialValue; // Pour conserver la valeur initiale pour le score
     
     void Awake()
     {
@@ -18,12 +19,13 @@ public class Block : MonoBehaviour
     void Start()
     {
         gameManager = FindAnyObjectByType<GameManager>();
-        Debug.Log("Block.Start() called. GameManager: " + gameManager); // [DEBUG]
+        Debug.Log("Block.Start() called. GameManager: " + gameManager);
     }
     
     public void Initialize(int value, Color color)
     {
         hitPoints = value;
+        initialValue = value; // Sauvegarde la valeur initiale
         if (valueText != null)
         {
             valueText.text = value.ToString();
@@ -36,7 +38,7 @@ public class Block : MonoBehaviour
         {
             Debug.LogWarning("SpriteRenderer not found on Block");
         }
-        Debug.Log("Block.Initialize() called. hitPoints: " + hitPoints + ", color: " + color); // [DEBUG]
+        Debug.Log("Block.Initialize() called. hitPoints: " + hitPoints + ", color: " + color);
     }
     
     public void TakeDamage()
@@ -46,12 +48,12 @@ public class Block : MonoBehaviour
         {
             valueText.text = hitPoints.ToString();
         }
-        Debug.Log("Block.TakeDamage() called. hitPoints: " + hitPoints); // [DEBUG]
+        Debug.Log("Block.TakeDamage() called. hitPoints: " + hitPoints);
         
         if (hitPoints <= 0)
         {
             if (gameManager != null)
-                gameManager.BlockDestroyed(hitPoints);
+                gameManager.BlockDestroyed(initialValue); // Utilise la valeur initiale pour le score
             
             Destroy(gameObject);
         }
@@ -59,6 +61,6 @@ public class Block : MonoBehaviour
 
     void OnDestroy()
     {
-        Debug.Log("Block.OnDestroy() called. Block destroyed: " + gameObject.name); // [DEBUG]
+        Debug.Log("Block.OnDestroy() called. Block destroyed: " + gameObject.name);
     }
 }

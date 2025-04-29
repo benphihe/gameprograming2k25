@@ -20,9 +20,13 @@ public class GameManager : MonoBehaviour
     public int gridWidth = 7;
     public int gridHeight = 8;
     public float blockSize = 1f;
-    public float ballSpeed = 10f; // Réduction de la vitesse
+    public float ballSpeed = 15f; // Augmentation de la force d'impulsion
     public int initialBallCount = 3;
     public float ballSize = 1f;
+    
+    [Header("Ball Physics Settings")]
+    public float minLaunchAngle = 20f; // Angle minimum de lancement en degrés
+    public float maxLaunchAngle = 160f; // Angle maximum de lancement en degrés
     
     private Vector3 launchPosition;
     private Vector2 launchDirection;
@@ -31,6 +35,7 @@ public class GameManager : MonoBehaviour
     private int ballCount;
     private bool canLaunch = true;
     private List<GameObject> activeBalls = new List<GameObject>();
+    private Vector3 dragStartPosition;
     private Color[] blockColors = new Color[] {
         new Color(0.95f, 0.3f, 0.6f), // Pink
         new Color(0.3f, 0.7f, 0.9f),  // Blue
@@ -39,11 +44,19 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        Debug.Log("GameManager.Start() called."); // [DEBUG]
+        Debug.Log("GameManager.Start() called.");
         ballCount = initialBallCount;
         UpdateBallCountText();
-        launchPosition = new Vector3(0, -4.5f, 0); // Assurez-vous que cette position est dégagée
+        launchPosition = new Vector3(0, -4.5f, 0);
         InitializeGrid();
+        
+        // Configuration de la ligne de trajectoire
+        if (trajectoryLine != null)
+        {
+            trajectoryLine.positionCount = 20; // Plus de points pour une meilleure visualisation
+            trajectoryLine.startWidth = 0.1f;  // Ligne plus fine au début
+            trajectoryLine.endWidth = 0.02f;   // Ligne qui s'affine à la fin
+        }
     }
     
     void Update()
@@ -53,7 +66,7 @@ public class GameManager : MonoBehaviour
         if (activeBalls.Count == 0 && !canLaunch && ballCount > 0)
         {
             canLaunch = true;
-            Debug.Log("GameManager.Update() - Can launch again."); // [DEBUG]
+            Debug.Log("GameManager.Update() - Can launch again.");
         }
     }
     
@@ -63,9 +76,11 @@ public class GameManager : MonoBehaviour
         
         if (Input.GetMouseButtonDown(0))
         {
+            dragStartPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            dragStartPosition.z = 0;
             isDragging = true;
             trajectoryLine.gameObject.SetActive(true);
-            Debug.Log("GameManager.HandleInput() - Mouse Down."); // [DEBUG]
+            Debug.Log("GameManager.HandleInput() - Mouse Down.");
         }
         
         if (isDragging)
@@ -73,13 +88,34 @@ public class GameManager : MonoBehaviour
             Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             mousePos.z = 0;
             
-            launchDirection = (mousePos - launchPosition).normalized;
-            if (launchDirection.y < 0.1f) launchDirection.y = 0.1f;
-            launchDirection = launchDirection.normalized;
+            // Calculer la direction en fonction de la position du toucher et de la position de lancement
+            Vector2 direction = (mousePos - launchPosition);
             
-            trajectoryLine.SetPosition(0, launchPosition);
-            trajectoryLine.SetPosition(1, launchPosition + new Vector3(launchDirection.x, launchDirection.y, 0) * 5f);
-            Debug.Log("GameManager.HandleInput() - Dragging. Launch direction: " + launchDirection); // [DEBUG]
+            // Limiter l'angle de lancement pour un mouvement plus prévisible
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+            
+            // Restreindre l'angle entre minLaunchAngle et maxLaunchAngle
+            if (angle < 0) angle += 360f;
+            
+            if (angle < minLaunchAngle || angle > maxLaunchAngle)
+            {
+                // Fixer l'angle aux limites
+                float clampedAngle;
+                if (Mathf.Abs(angle - minLaunchAngle) < Mathf.Abs(angle - maxLaunchAngle))
+                    clampedAngle = minLaunchAngle;
+                else
+                    clampedAngle = maxLaunchAngle;
+                
+                float radAngle = clampedAngle * Mathf.Deg2Rad;
+                direction = new Vector2(Mathf.Cos(radAngle), Mathf.Sin(radAngle));
+            }
+            
+            launchDirection = direction.normalized;
+            
+            // Visualiser la trajectoire avec une courbe balistique
+            DrawTrajectoryLine(launchPosition, launchDirection * ballSpeed);
+            
+            Debug.Log("GameManager.HandleInput() - Dragging. Launch direction: " + launchDirection);
         }
         
         if (Input.GetMouseButtonUp(0) && isDragging)
@@ -87,8 +123,32 @@ public class GameManager : MonoBehaviour
             isDragging = false;
             trajectoryLine.gameObject.SetActive(false);
             LaunchBall();
-            Debug.Log("GameManager.HandleInput() - Mouse Up, LaunchBall() called."); // [DEBUG]
+            Debug.Log("GameManager.HandleInput() - Mouse Up, LaunchBall() called.");
         }
+    }
+    
+    // Méthode pour dessiner une trajectoire balistique plus réaliste
+    void DrawTrajectoryLine(Vector3 startPos, Vector2 velocity)
+    {
+        if (trajectoryLine == null) return;
+        
+        Vector3[] points = new Vector3[trajectoryLine.positionCount];
+        
+        // Simuler la physique pour obtenir une trajectoire réaliste
+        float timeStep = 0.1f;
+        float gravity = Physics2D.gravity.y * 0.5f; // Utiliser la même gravité que la balle
+        
+        for (int i = 0; i < points.Length; i++)
+        {
+            float time = i * timeStep;
+            points[i] = startPos + new Vector3(
+                velocity.x * time,
+                velocity.y * time + 0.5f * gravity * time * time,
+                0
+            );
+        }
+        
+        trajectoryLine.SetPositions(points);
     }
         
     void LaunchBall()
@@ -96,14 +156,14 @@ public class GameManager : MonoBehaviour
         if (!gameObject.activeInHierarchy)
         {
             Debug.LogWarning("GameManager was inactive. Activating it now.");
-            gameObject.SetActive(true); // Active le GameManager si nécessaire
+            gameObject.SetActive(true);
         }
 
         if (ballCount > 0)
         {
             StartCoroutine(LaunchBallsSequentially());
             canLaunch = false;
-            Debug.Log("GameManager.LaunchBall() called. Starting coroutine."); // [DEBUG]
+            Debug.Log("GameManager.LaunchBall() called. Starting coroutine.");
         }
     }
     
@@ -112,17 +172,21 @@ public class GameManager : MonoBehaviour
         if (ballCount > 0)
         {
             GameObject ball = Instantiate(ballPrefab, launchPosition, Quaternion.identity);
+            
+            // Ajuster la taille de la balle si nécessaire
+            ball.transform.localScale = new Vector3(ballSize, ballSize, ballSize);
+            
             Ball ballScript = ball.GetComponent<Ball>();
-            ballScript.Initialize(launchDirection * ballSpeed, this);
+            ballScript.Initialize(launchDirection, this);
             activeBalls.Add(ball);
             ballCount--;
             UpdateBallCountText();
-            Debug.Log("GameManager.LaunchBallsSequentially() - Ball launched. Ball count: " + ballCount + ", Active balls: " + activeBalls.Count); // [DEBUG]
+            Debug.Log("GameManager.LaunchBallsSequentially() - Ball launched. Ball count: " + ballCount + ", Active balls: " + activeBalls.Count);
 
             yield return new WaitUntil(() => ballScript.HasCollided());
 
             BallReturned(ball);
-            Debug.Log("GameManager.LaunchBallsSequentially() - Ball returned in coroutine."); // [DEBUG]
+            Debug.Log("GameManager.LaunchBallsSequentially() - Ball returned in coroutine.");
         }
     }
     
@@ -179,15 +243,15 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        Debug.Log("GameManager.BallReturned() called. Ball: " + ball.name + ", Active balls before remove: " + activeBalls.Count); // [DEBUG]
+        Debug.Log("GameManager.BallReturned() called. Ball: " + ball.name + ", Active balls before remove: " + activeBalls.Count);
         activeBalls.Remove(ball);
         Destroy(ball);
-        Debug.Log("GameManager.BallReturned() - Ball removed and destroyed. Active balls after remove: " + activeBalls.Count); // [DEBUG]
+        Debug.Log("GameManager.BallReturned() - Ball removed and destroyed. Active balls after remove: " + activeBalls.Count);
 
         if (ballCount > 0)
         {
             canLaunch = true;
-            Debug.Log("GameManager.BallReturned() - Can launch again."); // [DEBUG]
+            Debug.Log("GameManager.BallReturned() - Can launch again.");
         }
         else
         {
@@ -197,7 +261,7 @@ public class GameManager : MonoBehaviour
     
     public void BlockDestroyed(int value)
     {
-        Debug.Log("GameManager.BlockDestroyed() called. Value: " + value); // [DEBUG]
+        Debug.Log("GameManager.BlockDestroyed() called. Value: " + value);
         score += value;
         scoreText.text = score.ToString();
     }
