@@ -6,13 +6,14 @@ public class Ball : MonoBehaviour
 {
     private GameManager gameManager;
     private bool hasCollided = false;
+
     public void Initialize(Vector2 launchDirection, GameManager manager)
     {
         gameManager = manager;
         Rigidbody2D rb = GetComponent<Rigidbody2D>();
         if (rb != null)
         {
-            rb.linearVelocity = launchDirection * 15f;
+            rb.linearVelocity = launchDirection * 10f; // Réduction de la vitesse
             Debug.Log("Ball.Initialize() - Velocity set to: " + rb.linearVelocity); // [DEBUG]
         }
     }
@@ -21,15 +22,18 @@ public class Ball : MonoBehaviour
     {
         if (!hasCollided)
         {
-            hasCollided = true;
-            if (gameManager != null)
+            if (collision.gameObject.CompareTag("Block") || collision.gameObject.CompareTag("ReturnZone"))
             {
-                gameManager.BallReturned(gameObject);
-            }
-            else
-            {
-                Debug.LogError("GameManager is null in Ball.cs!");
-                Destroy(gameObject);
+                hasCollided = true;
+                if (gameManager != null)
+                {
+                    gameManager.BallReturned(gameObject);
+                }
+                else
+                {
+                    Debug.LogError("GameManager is null in Ball.cs!");
+                    Destroy(gameObject);
+                }
             }
         }
     }

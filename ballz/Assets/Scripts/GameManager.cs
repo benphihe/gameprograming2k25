@@ -20,7 +20,7 @@ public class GameManager : MonoBehaviour
     public int gridWidth = 7;
     public int gridHeight = 8;
     public float blockSize = 1f;
-    public float ballSpeed = 15f;
+    public float ballSpeed = 10f; // Réduction de la vitesse
     public int initialBallCount = 3;
     public float ballSize = 1f;
     
@@ -36,12 +36,13 @@ public class GameManager : MonoBehaviour
         new Color(0.3f, 0.7f, 0.9f),  // Blue
         new Color(1f, 0.85f, 0.2f)    // Yellow
     };
+
     void Start()
     {
         Debug.Log("GameManager.Start() called."); // [DEBUG]
         ballCount = initialBallCount;
         UpdateBallCountText();
-        launchPosition = new Vector3(0, -4.5f, 0);
+        launchPosition = new Vector3(0, -4.5f, 0); // Assurez-vous que cette position est dégagée
         InitializeGrid();
     }
     
@@ -92,6 +93,12 @@ public class GameManager : MonoBehaviour
         
     void LaunchBall()
     {
+        if (!gameObject.activeInHierarchy)
+        {
+            Debug.LogWarning("GameManager was inactive. Activating it now.");
+            gameObject.SetActive(true); // Active le GameManager si nécessaire
+        }
+
         if (ballCount > 0)
         {
             StartCoroutine(LaunchBallsSequentially());
@@ -121,13 +128,11 @@ public class GameManager : MonoBehaviour
     
     void InitializeGrid()
     {
-        // Clear existing blocks
         foreach (Transform child in blockContainer)
         {
             Destroy(child.gameObject);
         }
         
-        // Create initial rows of blocks
         for (int row = 0; row < 3; row++)
         {
             SpawnRowAtPosition(row);
@@ -166,22 +171,19 @@ public class GameManager : MonoBehaviour
         }
     }
     
-    void MoveBlocksDown()
-    {
-        float spacing = 0.2f;
-        
-        foreach (Transform block in blockContainer)
-        {
-            block.position += new Vector3(0, -(blockSize + spacing), 0);
-        }
-    }
     public void BallReturned(GameObject ball)
     {
+        if (ball == null)
+        {
+            Debug.LogWarning("GameManager.BallReturned() - Ball is null or already destroyed.");
+            return;
+        }
+
         Debug.Log("GameManager.BallReturned() called. Ball: " + ball.name + ", Active balls before remove: " + activeBalls.Count); // [DEBUG]
         activeBalls.Remove(ball);
         Destroy(ball);
         Debug.Log("GameManager.BallReturned() - Ball removed and destroyed. Active balls after remove: " + activeBalls.Count); // [DEBUG]
-        
+
         if (ballCount > 0)
         {
             canLaunch = true;
@@ -203,10 +205,5 @@ public class GameManager : MonoBehaviour
     void UpdateBallCountText()
     {
         ballCountText.text = ballCount.ToString();
-    }
-
-    void OnDestroy()
-    {
-        Debug.Log("GameManager.OnDestroy() called."); // [DEBUG]
     }
 }
