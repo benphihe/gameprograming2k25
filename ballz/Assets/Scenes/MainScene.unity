@@ -851,8 +851,12 @@ MonoBehaviour:
   ballPrefab: {fileID: 3255237050631538883, guid: 81087b8879f5130479c1acecc3b7d22b, type: 3}
   blockContainer: {fileID: 1613912879}
   trajectoryLine: {fileID: 632262956}
+  powerUpPrefabs: []
+  powerUpDropChance: 0.2
+  powerUpDuration: 10
   scoreText: {fileID: 1841261848}
   ballCountText: {fileID: 387801463}
+  comboText: {fileID: 0}
   gridWidth: 10
   gridHeight: 5
   blockSize: 1
@@ -861,6 +865,11 @@ MonoBehaviour:
   ballSize: 1
   minLaunchAngle: 20
   maxLaunchAngle: 160
+  minBallSpeed: 8
+  maxBallSpeed: 20
+  bounceEnergyLoss: 0.1
+  maxBallSpeedMultiplier: 1.5
+  bounceAngleVariation: 5
 --- !u!4 &632262958
 Transform:
   m_ObjectHideFlags: 0
