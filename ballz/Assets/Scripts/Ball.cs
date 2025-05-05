@@ -9,6 +9,7 @@ public class Ball : MonoBehaviour
     private Rigidbody2D rb;
     public float minVelocityThreshold = 5f;
     private float currentSpeed;
+    private Vector2 lastVelocity;
 
     void Awake()
     {
@@ -43,6 +44,8 @@ public class Ball : MonoBehaviour
     {
         if (rb != null)
         {
+            lastVelocity = rb.linearVelocity;
+
             // Maintenir une vitesse minimale
             if (rb.linearVelocity.magnitude < gameManager.minBallSpeed)
             {
@@ -97,6 +100,20 @@ public class Ball : MonoBehaviour
                     Debug.LogError("GameManager is null in Ball.cs!");
                     Destroy(gameObject);
                 }
+            }
+            else
+            {
+                // Calculer le rebond
+                Vector2 normal = collision.contacts[0].normal;
+                Vector2 reflection = Vector2.Reflect(lastVelocity.normalized, normal);
+                
+                // Appliquer la nouvelle vélocité avec la même magnitude
+                float speed = lastVelocity.magnitude;
+                rb.linearVelocity = reflection * speed;
+
+                // Ajouter un petit effet de rotation pour plus de réalisme
+                float rotationAmount = Vector2.SignedAngle(lastVelocity, reflection);
+                rb.angularVelocity = rotationAmount * 0.5f;
             }
         }
     }
