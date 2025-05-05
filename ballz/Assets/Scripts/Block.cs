@@ -1,66 +1,74 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
 public class Block : MonoBehaviour
 {
-    public int hitPoints;
+    public int health = 1;
     public TextMeshPro valueText;
-    public SpriteRenderer spriteRenderer;
-    
+    public SpriteRenderer blockRenderer;
     private GameManager gameManager;
-    private int initialValue; // Pour conserver la valeur initiale pour le score
-    
-    void Awake()
-    {
-        if (spriteRenderer == null)
-            spriteRenderer = GetComponent<SpriteRenderer>();
-    }
     
     void Start()
     {
-        gameManager = FindAnyObjectByType<GameManager>();
-        Debug.Log("Block.Start() called. GameManager: " + gameManager);
+        Debug.Log("Block.Start() called. GameManager: " + FindObjectOfType<GameManager>());
+        gameManager = FindObjectOfType<GameManager>();
+        
+        // Assurez-vous que les composants nécessaires sont présents
+        if (valueText == null)
+        {
+            Debug.LogWarning("TextMeshPro manquant sur le block!");
+        }
+        
+        if (blockRenderer == null)
+        {
+            blockRenderer = GetComponent<SpriteRenderer>();
+            if (blockRenderer == null)
+            {
+                Debug.LogWarning("SpriteRenderer manquant sur le block!");
+            }
+        }
     }
     
     public void Initialize(int value, Color color)
     {
-        hitPoints = value;
-        initialValue = value; // Sauvegarde la valeur initiale
+        health = value;
+        
+        // Mettre à jour le texte si le TextMeshPro est présent
         if (valueText != null)
         {
             valueText.text = value.ToString();
         }
-        if (spriteRenderer != null)
+        
+        // Mettre à jour la couleur si le SpriteRenderer est présent
+        if (blockRenderer != null)
         {
-            spriteRenderer.color = color;
+            blockRenderer.color = color;
         }
-        else
-        {
-            Debug.LogWarning("SpriteRenderer not found on Block");
-        }
-        Debug.Log("Block.Initialize() called. hitPoints: " + hitPoints + ", color: " + color);
     }
     
     public void TakeDamage()
     {
-        hitPoints--;
-        if (valueText != null)
-        {
-            valueText.text = hitPoints.ToString();
-        }
-        Debug.Log("Block.TakeDamage() called. hitPoints: " + hitPoints);
+        health--;
         
-        if (hitPoints <= 0)
+        if (health <= 0)
         {
+            // Informer le GameManager que le bloc est détruit
             if (gameManager != null)
-                gameManager.BlockDestroyed(initialValue); // Utilise la valeur initiale pour le score
+            {
+                gameManager.BlockDestroyed(1);
+            }
             
             Destroy(gameObject);
         }
-    }
-
-    void OnDestroy()
-    {
-        Debug.Log("Block.OnDestroy() called. Block destroyed: " + gameObject.name);
+        else
+        {
+            // Mettre à jour le texte
+            if (valueText != null)
+            {
+                valueText.text = health.ToString();
+            }
+        }
     }
 }

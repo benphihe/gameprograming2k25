@@ -203,37 +203,65 @@ public class GameManager : MonoBehaviour
         }
     }
     
-    void SpawnRowAtPosition(int row)
+   void SpawnRowAtPosition(int row)
+{
+    if (blockContainer == null) 
     {
-        if (blockContainer == null) 
+        Debug.LogError("Block container is not assigned!");
+        return;
+    }
+    
+    if (blockPrefab == null)
+    {
+        Debug.LogError("Block prefab is not assigned!");
+        return;
+    }
+    
+    float spacing = 0.2f;
+    
+    for (int col = 0; col < gridWidth; col++)
+    {
+        if (Random.value < 0.7f)
         {
-            Debug.LogError("Block container is not assigned!");
-            return;
-        }
-        
-        float spacing = 0.2f;
-        
-        for (int col = 0; col < gridWidth; col++)
-        {
-            if (Random.value < 0.7f)
+            Vector2 position = new Vector2(
+                (col - gridWidth / 2) * (blockSize + spacing) + blockSize / 2,
+                (row - gridHeight / 2) * (blockSize + spacing) + 3f
+            );
+            
+            // Instancier le bloc et vérifier qu'il a été créé correctement
+            GameObject block = Instantiate(blockPrefab, position, Quaternion.identity);
+            if (block == null)
             {
-                Vector2 position = new Vector2(
-                    (col - gridWidth / 2) * (blockSize + spacing) + blockSize / 2,
-                    (row - gridHeight / 2) * (blockSize + spacing) + 3f
-                );
-                
-                GameObject block = Instantiate(blockPrefab, position, Quaternion.identity);
-                block.transform.SetParent(blockContainer, true);
-                
-                Block blockScript = block.GetComponent<Block>();
-                
-                int value = Random.Range(1, 4) + score / 10;
-                Color color = blockColors[Random.Range(0, blockColors.Length)];
-                
+                Debug.LogError("Failed to instantiate block!");
+                continue;
+            }
+            
+            // Définir le parent
+            block.transform.SetParent(blockContainer, true);
+            
+            // Obtenir le composant Block et vérifier qu'il existe
+            Block blockScript = block.GetComponent<Block>();
+            if (blockScript == null)
+            {
+                Debug.LogError("Block script not found on instantiated block!");
+                continue;
+            }
+            
+            // Initialiser le bloc
+            int value = Random.Range(1, 4) + score / 10;
+            Color color = blockColors[Random.Range(0, blockColors.Length)];
+            
+            try
+            {
                 blockScript.Initialize(value, color);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError("Error initializing block: " + e.Message);
             }
         }
     }
+}
     
     public void BallReturned(GameObject ball)
     {
@@ -243,10 +271,8 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        Debug.Log("GameManager.BallReturned() called. Ball: " + ball.name + ", Active balls before remove: " + activeBalls.Count);
         activeBalls.Remove(ball);
         Destroy(ball);
-        Debug.Log("GameManager.BallReturned() - Ball removed and destroyed. Active balls after remove: " + activeBalls.Count);
 
         if (ballCount > 0)
         {

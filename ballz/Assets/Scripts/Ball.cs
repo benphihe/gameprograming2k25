@@ -16,6 +16,9 @@ public class Ball : MonoBehaviour
         {
             Debug.LogError("Rigidbody2D manquant sur la balle!");
         }
+        
+        // Ajouter un tag à la balle pour la détection
+        gameObject.tag = "Ball";
     }
 
     public void Initialize(Vector2 launchDirection, GameManager manager)
@@ -92,6 +95,11 @@ public class Ball : MonoBehaviour
         }
     }
 
+    public void MarkAsCollided()
+    {
+        hasCollided = true;
+    }
+
     public bool HasCollided()
     {
         return hasCollided;
@@ -100,10 +108,5 @@ public class Ball : MonoBehaviour
     void OnDestroy()
     {
         Debug.Log("Ball.OnDestroy() called. Ball destroyed: " + gameObject.name);
-    }
-
-    internal void MarkAsCollided()
-    {
-        throw new System.NotImplementedException();
     }
 }

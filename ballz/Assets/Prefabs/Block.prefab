@@ -252,6 +252,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e78cf4326c07c44a9143ac042754f25, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hitPoints: 0
+  health: 1
   valueText: {fileID: 0}
-  spriteRenderer: {fileID: 0}
+  blockRenderer: {fileID: 0}
