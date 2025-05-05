@@ -5,70 +5,52 @@ using TMPro;
 
 public class Block : MonoBehaviour
 {
-    public int health = 1;
-    public TextMeshPro valueText;
-    public SpriteRenderer blockRenderer;
-    private GameManager gameManager;
-    
+    private int health;
+    private TextMeshPro textMesh;
+
     void Start()
     {
-        Debug.Log("Block.Start() called. GameManager: " + FindObjectOfType<GameManager>());
-        gameManager = FindObjectOfType<GameManager>();
-        
-        // Assurez-vous que les composants nécessaires sont présents
-        if (valueText == null)
+        // Récupérer le composant TextMeshPro sur l'enfant
+        textMesh = GetComponentInChildren<TextMeshPro>();
+        if (textMesh == null)
         {
             Debug.LogWarning("TextMeshPro manquant sur le block!");
         }
-        
-        if (blockRenderer == null)
-        {
-            blockRenderer = GetComponent<SpriteRenderer>();
-            if (blockRenderer == null)
-            {
-                Debug.LogWarning("SpriteRenderer manquant sur le block!");
-            }
-        }
     }
-    
+
     public void Initialize(int value, Color color)
     {
         health = value;
-        
-        // Mettre à jour le texte si le TextMeshPro est présent
-        if (valueText != null)
+
+        // Mettre à jour le texte et la couleur
+        if (textMesh != null)
         {
-            valueText.text = value.ToString();
+            textMesh.text = health.ToString();
+            textMesh.color = color;
         }
-        
-        // Mettre à jour la couleur si le SpriteRenderer est présent
-        if (blockRenderer != null)
+
+        // Appliquer la couleur au sprite du bloc
+        SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer != null)
         {
-            blockRenderer.color = color;
+            spriteRenderer.color = color;
         }
     }
-    
-    public void TakeDamage()
+
+    public void TakeDamage(int damage)
     {
-        health--;
-        
+        health -= damage;
+
+        // Mettre à jour le texte
+        if (textMesh != null)
+        {
+            textMesh.text = health.ToString();
+        }
+
+        // Détruire le bloc si les points de vie tombent à 0 ou moins
         if (health <= 0)
         {
-            // Informer le GameManager que le bloc est détruit
-            if (gameManager != null)
-            {
-                gameManager.BlockDestroyed(1);
-            }
-            
             Destroy(gameObject);
-        }
-        else
-        {
-            // Mettre à jour le texte
-            if (valueText != null)
-            {
-                valueText.text = health.ToString();
-            }
         }
     }
 }

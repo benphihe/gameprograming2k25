@@ -203,65 +203,54 @@ public class GameManager : MonoBehaviour
         }
     }
     
-   void SpawnRowAtPosition(int row)
-{
-    if (blockContainer == null) 
+    void SpawnRowAtPosition(int row)
     {
-        Debug.LogError("Block container is not assigned!");
-        return;
-    }
-    
-    if (blockPrefab == null)
-    {
-        Debug.LogError("Block prefab is not assigned!");
-        return;
-    }
-    
-    float spacing = 0.2f;
-    
-    for (int col = 0; col < gridWidth; col++)
-    {
-        if (Random.value < 0.7f)
+        if (blockContainer == null) 
         {
-            Vector2 position = new Vector2(
-                (col - gridWidth / 2) * (blockSize + spacing) + blockSize / 2,
-                (row - gridHeight / 2) * (blockSize + spacing) + 3f
-            );
-            
-            // Instancier le bloc et vérifier qu'il a été créé correctement
-            GameObject block = Instantiate(blockPrefab, position, Quaternion.identity);
-            if (block == null)
+            Debug.LogError("Block container is not assigned!");
+            return;
+        }
+        
+        if (blockPrefab == null)
+        {
+            Debug.LogError("Block prefab is not assigned!");
+            return;
+        }
+        
+        float spacing = 0.2f;
+        
+        for (int col = 0; col < gridWidth; col++)
+        {
+            if (Random.value < 0.7f)
             {
-                Debug.LogError("Failed to instantiate block!");
-                continue;
-            }
-            
-            // Définir le parent
-            block.transform.SetParent(blockContainer, true);
-            
-            // Obtenir le composant Block et vérifier qu'il existe
-            Block blockScript = block.GetComponent<Block>();
-            if (blockScript == null)
-            {
-                Debug.LogError("Block script not found on instantiated block!");
-                continue;
-            }
-            
-            // Initialiser le bloc
-            int value = Random.Range(1, 4) + score / 10;
-            Color color = blockColors[Random.Range(0, blockColors.Length)];
-            
-            try
-            {
+                Vector2 position = new Vector2(
+                    (col - gridWidth / 2) * (blockSize + spacing) + blockSize / 2,
+                    (row - gridHeight / 2) * (blockSize + spacing) + 3f
+                );
+                
+                GameObject block = Instantiate(blockPrefab, position, Quaternion.identity);
+                if (block == null)
+                {
+                    Debug.LogError("Failed to instantiate block!");
+                    continue;
+                }
+                
+                block.transform.SetParent(blockContainer, true);
+                
+                Block blockScript = block.GetComponent<Block>();
+                if (blockScript == null)
+                {
+                    Debug.LogError("Block script not found on instantiated block!");
+                    continue;
+                }
+                
+                int value = Random.Range(1, 4) + score / 10;
+                Color color = blockColors[Random.Range(0, blockColors.Length)];
+                
                 blockScript.Initialize(value, color);
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogError("Error initializing block: " + e.Message);
             }
         }
     }
-}
     
     public void BallReturned(GameObject ball)
     {

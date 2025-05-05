@@ -55,28 +55,18 @@ public class Ball : MonoBehaviour
             Block blockScript = collision.gameObject.GetComponent<Block>();
             if (blockScript != null)
             {
-                blockScript.TakeDamage();
+                blockScript.TakeDamage(1);
                 Debug.Log("Ball hit block: " + collision.gameObject.name);
             }
+
+            // Ne pas marquer la balle comme "collidée" ici pour qu'elle continue à rebondir
+            return;
         }
 
-        // Ajouter une légère variation à la vitesse après collision pour éviter les trajectoires prévisibles
-        if (rb != null)
-        {
-            // Légère variation aléatoire de la trajectoire après collision pour plus de dynamisme
-            Vector2 currentVelocity = rb.linearVelocity;
-            float randomVariation = Random.Range(-0.1f, 0.1f);
-            rb.linearVelocity = new Vector2(
-                currentVelocity.x + randomVariation, 
-                currentVelocity.y + randomVariation
-            ).normalized * currentVelocity.magnitude;
-        }
-
-        // Gestion du retour de la balle
+        // Gestion du retour de la balle (par exemple, si elle touche le bas de l'écran ou une zone de retour)
         if (!hasCollided)
         {
-            if (collision.gameObject.CompareTag("Block") || 
-                collision.gameObject.name.Contains("ReturnZone") || 
+            if (collision.gameObject.CompareTag("ReturnZone") || 
                 collision.gameObject.name.Contains("Ground") ||
                 collision.gameObject.layer == LayerMask.NameToLayer("Ground") ||
                 collision.gameObject.transform.position.y < -4.0f)  
