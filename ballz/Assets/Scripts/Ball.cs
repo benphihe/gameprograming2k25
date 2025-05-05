@@ -101,4 +101,9 @@ public class Ball : MonoBehaviour
     {
         Debug.Log("Ball.OnDestroy() called. Ball destroyed: " + gameObject.name);
     }
+
+    internal void MarkAsCollided()
+    {
+        throw new System.NotImplementedException();
+    }
 }

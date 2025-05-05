@@ -308,6 +308,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: balle
       objectReference: {fileID: 0}
+    - target: {fileID: 3255237050631538883, guid: 81087b8879f5130479c1acecc3b7d22b, type: 3}
+      propertyPath: m_TagString
+      value: Ball
+      objectReference: {fileID: 0}
     - target: {fileID: 6949958321224231779, guid: 81087b8879f5130479c1acecc3b7d22b, type: 3}
       propertyPath: m_Simulated
       value: 0
@@ -694,6 +698,8 @@ MonoBehaviour:
   ballSpeed: 15
   initialBallCount: 3
   ballSize: 1
+  minLaunchAngle: 20
+  maxLaunchAngle: 160
 --- !u!4 &632262958
 Transform:
   m_ObjectHideFlags: 0
@@ -719,6 +725,10 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3760137034480328146, guid: 909d8edc732797147a5eb5e7ee4378c4, type: 3}
       propertyPath: m_Name
+      value: Block
+      objectReference: {fileID: 0}
+    - target: {fileID: 3760137034480328146, guid: 909d8edc732797147a5eb5e7ee4378c4, type: 3}
+      propertyPath: m_TagString
       value: Block
       objectReference: {fileID: 0}
     - target: {fileID: 5270866008947256351, guid: 909d8edc732797147a5eb5e7ee4378c4, type: 3}
