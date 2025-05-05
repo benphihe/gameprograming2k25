@@ -6,51 +6,62 @@ using TMPro;
 public class Block : MonoBehaviour
 {
     private int health;
-    private TextMeshPro textMesh;
+    private int maxHealth;
+    private SpriteRenderer spriteRenderer;
+    private TextMeshPro healthText;
+    private Color[] healthColors = new Color[] {
+        new Color(0.95f, 0.3f, 0.6f),  // Rose pour 1 PV
+        new Color(0.3f, 0.7f, 0.9f),   // Bleu pour 2 PV
+        new Color(1f, 0.85f, 0.2f)     // Jaune pour 3 PV
+    };
 
-    void Start()
+    void Awake()
     {
-        // Récupérer le composant TextMeshPro sur l'enfant
-        textMesh = GetComponentInChildren<TextMeshPro>();
-        if (textMesh == null)
-        {
-            Debug.LogWarning("TextMeshPro manquant sur le block!");
-        }
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        // Créer le texte pour afficher les points de vie
+        GameObject textObj = new GameObject("HealthText");
+        textObj.transform.SetParent(transform);
+        textObj.transform.localPosition = Vector3.zero;
+        healthText = textObj.AddComponent<TextMeshPro>();
+        healthText.alignment = TextAlignmentOptions.Center;
+        healthText.fontSize = 3;
+        healthText.color = Color.white;
+        healthText.sortingOrder = 1;
     }
 
     public void Initialize(int value, Color color)
     {
-        health = value;
-
-        // Mettre à jour le texte et la couleur
-        if (textMesh != null)
-        {
-            textMesh.text = health.ToString();
-            textMesh.color = color;
-        }
-
-        // Appliquer la couleur au sprite du bloc
-        SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
-        if (spriteRenderer != null)
-        {
-            spriteRenderer.color = color;
-        }
+        maxHealth = Mathf.Clamp(value, 1, 3);
+        health = maxHealth;
+        UpdateVisuals();
     }
 
     public void TakeDamage(int damage)
     {
         health -= damage;
-
-        // Mettre à jour le texte
-        if (textMesh != null)
-        {
-            textMesh.text = health.ToString();
-        }
-
-        // Détruire le bloc si les points de vie tombent à 0 ou moins
         if (health <= 0)
         {
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.BlockDestroyed(maxHealth);
+            }
             Destroy(gameObject);
+        }
+        else
+        {
+            UpdateVisuals();
+        }
+    }
+
+    private void UpdateVisuals()
+    {
+        // Mettre à jour la couleur en fonction des points de vie
+        spriteRenderer.color = healthColors[health - 1];
+        
+        // Mettre à jour le texte des points de vie
+        if (healthText != null)
+        {
+            healthText.text = health.ToString();
         }
     }
 }

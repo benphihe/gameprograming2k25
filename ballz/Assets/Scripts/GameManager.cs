@@ -6,27 +6,39 @@ using TMPro;
 
 public class GameManager : MonoBehaviour
 {
+    public static GameManager Instance { get; private set; }
+
     [Header("Game Elements")]
     public GameObject blockPrefab;
     public GameObject ballPrefab;
     public Transform blockContainer;
     public LineRenderer trajectoryLine;
     
+    [Header("Power-ups")]
+    public GameObject[] powerUpPrefabs;
+    public float powerUpDropChance = 0.2f;
+    public float powerUpDuration = 10f;
+    
     [Header("UI Elements")]
     public TextMeshProUGUI scoreText;
     public TextMeshProUGUI ballCountText;
+    public TextMeshProUGUI comboText;
     
     [Header("Game Settings")]
     public int gridWidth = 7;
     public int gridHeight = 8;
     public float blockSize = 1f;
-    public float ballSpeed = 15f; // Augmentation de la force d'impulsion
+    public float ballSpeed = 15f;
     public int initialBallCount = 3;
     public float ballSize = 1f;
     
     [Header("Ball Physics Settings")]
-    public float minLaunchAngle = 20f; // Angle minimum de lancement en degrés
-    public float maxLaunchAngle = 160f; // Angle maximum de lancement en degrés
+    public float minLaunchAngle = 20f;
+    public float maxLaunchAngle = 160f;
+    public float minBallSpeed = 8f;
+    public float maxBallSpeed = 20f;
+    public float bounceEnergyLoss = 0.1f;
+    public float maxBallSpeedMultiplier = 1.5f;
     
     private Vector3 launchPosition;
     private Vector2 launchDirection;
@@ -36,11 +48,26 @@ public class GameManager : MonoBehaviour
     private bool canLaunch = true;
     private List<GameObject> activeBalls = new List<GameObject>();
     private Vector3 dragStartPosition;
+    private int currentCombo = 0;
+    private float comboTimeRemaining = 0f;
+    private float comboTimeWindow = 2f;
     private Color[] blockColors = new Color[] {
         new Color(0.95f, 0.3f, 0.6f), // Pink
         new Color(0.3f, 0.7f, 0.9f),  // Blue
         new Color(1f, 0.85f, 0.2f)    // Yellow
     };
+
+    void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
 
     void Start()
     {
@@ -66,7 +93,17 @@ public class GameManager : MonoBehaviour
         if (activeBalls.Count == 0 && !canLaunch && ballCount > 0)
         {
             canLaunch = true;
-            Debug.Log("GameManager.Update() - Can launch again.");
+        }
+
+        // Gestion du combo
+        if (comboTimeRemaining > 0)
+        {
+            comboTimeRemaining -= Time.deltaTime;
+            if (comboTimeRemaining <= 0)
+            {
+                currentCombo = 0;
+                UpdateComboText();
+            }
         }
     }
     
@@ -244,10 +281,9 @@ public class GameManager : MonoBehaviour
                     continue;
                 }
                 
-                int value = Random.Range(1, 4) + score / 10;
-                Color color = blockColors[Random.Range(0, blockColors.Length)];
-                
-                blockScript.Initialize(value, color);
+                // Générer une valeur entre 1 et 3 pour les points de vie
+                int value = Random.Range(1, 4);
+                blockScript.Initialize(value, Color.white); // La couleur sera gérée par le Block
             }
         }
     }
@@ -276,13 +312,61 @@ public class GameManager : MonoBehaviour
     
     public void BlockDestroyed(int value)
     {
-        Debug.Log("GameManager.BlockDestroyed() called. Value: " + value);
-        score += value;
-        scoreText.text = score.ToString();
+        score += (int)(value * (1 + currentCombo * 0.5f));
+        UpdateScoreText();
+        
+        // Gestion du combo
+        currentCombo++;
+        comboTimeRemaining = comboTimeWindow;
+        UpdateComboText();
+
+        // Chance de faire apparaître un power-up
+        if (Random.value < powerUpDropChance)
+        {
+            SpawnPowerUp();
+        }
     }
     
     void UpdateBallCountText()
     {
         ballCountText.text = ballCount.ToString();
+    }
+
+    void UpdateScoreText()
+    {
+        if (scoreText != null)
+        {
+            scoreText.text = score.ToString();
+        }
+    }
+
+    void SpawnPowerUp()
+    {
+        if (powerUpPrefabs.Length == 0) return;
+
+        Vector3 spawnPosition = new Vector3(
+            Random.Range(-3f, 3f),
+            Random.Range(0f, 4f),
+            0f
+        );
+
+        int randomIndex = Random.Range(0, powerUpPrefabs.Length);
+        GameObject powerUp = Instantiate(powerUpPrefabs[randomIndex], spawnPosition, Quaternion.identity);
+    }
+
+    void UpdateComboText()
+    {
+        if (comboText != null)
+        {
+            if (currentCombo > 1)
+            {
+                comboText.text = $"Combo x{currentCombo}";
+                comboText.gameObject.SetActive(true);
+            }
+            else
+            {
+                comboText.gameObject.SetActive(false);
+            }
+        }
     }
 }

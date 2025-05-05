@@ -7,7 +7,8 @@ public class Ball : MonoBehaviour
     private GameManager gameManager;
     private bool hasCollided = false;
     private Rigidbody2D rb;
-    public float minVelocityThreshold = 5f; // Seuil minimal de vitesse pour éviter les balles trop lentes
+    public float minVelocityThreshold = 5f;
+    private float currentSpeed;
 
     void Awake()
     {
@@ -32,18 +33,33 @@ public class Ball : MonoBehaviour
             rb.angularDamping = 0f; // Réduire la résistance à la rotation
             rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous; // Éviter les passages à travers des objets rapides
             
-            // Appliquer une force d'impulsion pour un mouvement plus naturel au lieu d'une vélocité constante
-            rb.AddForce(launchDirection * manager.ballSpeed, ForceMode2D.Impulse);
-            Debug.Log("Ball.Initialize() - Force appliquée: " + (launchDirection * manager.ballSpeed));
+            currentSpeed = gameManager.ballSpeed;
+            rb.AddForce(launchDirection * currentSpeed, ForceMode2D.Impulse);
+            Debug.Log("Ball.Initialize() - Force appliquée: " + (launchDirection * currentSpeed));
         }
     }
 
     void FixedUpdate()
     {
-        // Maintenir une certaine vitesse minimale pour éviter les mouvements trop lents
-        if (rb != null && rb.linearVelocity.magnitude < minVelocityThreshold)
+        if (rb != null)
         {
-            rb.linearVelocity = rb.linearVelocity.normalized * minVelocityThreshold;
+            // Maintenir une vitesse minimale
+            if (rb.linearVelocity.magnitude < gameManager.minBallSpeed)
+            {
+                rb.linearVelocity = rb.linearVelocity.normalized * gameManager.minBallSpeed;
+            }
+            
+            // Limiter la vitesse maximale
+            if (rb.linearVelocity.magnitude > gameManager.maxBallSpeed)
+            {
+                rb.linearVelocity = rb.linearVelocity.normalized * gameManager.maxBallSpeed;
+            }
+
+            // Appliquer une légère perte d'énergie lors des rebonds
+            if (rb.linearVelocity.magnitude > currentSpeed)
+            {
+                rb.linearVelocity *= (1f - gameManager.bounceEnergyLoss);
+            }
         }
     }
 
