@@ -39,6 +39,7 @@ public class GameManager : MonoBehaviour
     public float maxBallSpeed = 20f;
     public float bounceEnergyLoss = 0.1f;
     public float maxBallSpeedMultiplier = 1.5f;
+    public float bounceAngleVariation = 5f; // Variation d'angle lors des rebonds
     
     private Vector3 launchPosition;
     private Vector2 launchDirection;

@@ -10,13 +10,24 @@ public class Ball : MonoBehaviour
     public float minVelocityThreshold = 5f;
     private float currentSpeed;
     private Vector2 lastVelocity;
+    private Vector2 lastPosition;
+    private float minBounceAngle = 20f; // Angle minimum de rebond en degrés
+
+    // Détection de blocage
+    private float stuckTimer = 0f;
+    private float stuckThreshold = 2f; // secondes
+    private float minMoveDistance = 0.1f;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        if (rb == null)
+        if (rb != null)
         {
-            Debug.LogError("Rigidbody2D manquant sur la balle!");
+            rb.gravityScale = 0f; // Suppression de la gravité
+            rb.linearDamping = 0f;
+            rb.angularDamping = 0f;
+            rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+            rb.constraints = RigidbodyConstraints2D.FreezeRotation; // Empêcher la rotation automatique
         }
         
         // Ajouter un tag à la balle pour la détection
@@ -28,40 +39,41 @@ public class Ball : MonoBehaviour
         gameManager = manager;
         if (rb != null)
         {
-            // Configuration de la physique pour un mouvement plus naturel
-            rb.gravityScale = 0.5f; // Réduire légèrement la gravité pour un mouvement plus fluide
-            rb.linearDamping = 0f; // Réduire la résistance à l'air
-            rb.angularDamping = 0f; // Réduire la résistance à la rotation
-            rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous; // Éviter les passages à travers des objets rapides
-            
             currentSpeed = gameManager.ballSpeed;
-            rb.AddForce(launchDirection * currentSpeed, ForceMode2D.Impulse);
-            Debug.Log("Ball.Initialize() - Force appliquée: " + (launchDirection * currentSpeed));
+            rb.linearVelocity = launchDirection * currentSpeed;
         }
+        lastPosition = transform.position;
+        stuckTimer = 0f;
     }
 
     void FixedUpdate()
     {
         if (rb != null)
         {
+            // Détection de blocage
+            float moveDistance = Vector2.Distance((Vector2)transform.position, lastPosition);
+            if (moveDistance < minMoveDistance)
+            {
+                stuckTimer += Time.fixedDeltaTime;
+                if (stuckTimer > stuckThreshold)
+                {
+                    // Relance la balle dans une direction aléatoire vers le bas
+                    Vector2 randomDir = new Vector2(Random.Range(-0.7f, 0.7f), -1f).normalized;
+                    rb.linearVelocity = randomDir * currentSpeed;
+                    stuckTimer = 0f;
+                }
+            }
+            else
+            {
+                stuckTimer = 0f;
+            }
+            lastPosition = transform.position;
             lastVelocity = rb.linearVelocity;
 
-            // Maintenir une vitesse minimale
-            if (rb.linearVelocity.magnitude < gameManager.minBallSpeed)
+            // Maintenir une vitesse constante
+            if (rb.linearVelocity.magnitude != currentSpeed)
             {
-                rb.linearVelocity = rb.linearVelocity.normalized * gameManager.minBallSpeed;
-            }
-            
-            // Limiter la vitesse maximale
-            if (rb.linearVelocity.magnitude > gameManager.maxBallSpeed)
-            {
-                rb.linearVelocity = rb.linearVelocity.normalized * gameManager.maxBallSpeed;
-            }
-
-            // Appliquer une légère perte d'énergie lors des rebonds
-            if (rb.linearVelocity.magnitude > currentSpeed)
-            {
-                rb.linearVelocity *= (1f - gameManager.bounceEnergyLoss);
+                rb.linearVelocity = rb.linearVelocity.normalized * currentSpeed;
             }
         }
     }
@@ -103,19 +115,36 @@ public class Ball : MonoBehaviour
             }
             else
             {
-                // Calculer le rebond
-                Vector2 normal = collision.contacts[0].normal;
-                Vector2 reflection = Vector2.Reflect(lastVelocity.normalized, normal);
-                
-                // Appliquer la nouvelle vélocité avec la même magnitude
-                float speed = lastVelocity.magnitude;
-                rb.linearVelocity = reflection * speed;
-
-                // Ajouter un petit effet de rotation pour plus de réalisme
-                float rotationAmount = Vector2.SignedAngle(lastVelocity, reflection);
-                rb.angularVelocity = rotationAmount * 0.5f;
+                HandleBounce(collision);
             }
         }
+    }
+
+    void HandleBounce(Collision2D collision)
+    {
+        ContactPoint2D contact = collision.contacts[0];
+        Vector2 normal = contact.normal;
+        Vector2 incomingVelocity = lastVelocity;
+
+        // Calculer la nouvelle direction de rebond
+        Vector2 reflection = Vector2.Reflect(incomingVelocity.normalized, normal);
+
+        // Correction d'angle pour éviter les trajectoires trop horizontales ou verticales
+        float minAngle = 15f; // angle minimum par rapport à l'axe horizontal
+        float angleWithHorizontal = Mathf.Abs(Vector2.Angle(reflection, Vector2.right));
+        if (angleWithHorizontal < minAngle || angleWithHorizontal > 180f - minAngle)
+        {
+            float sign = Mathf.Sign(reflection.y);
+            float angle = minAngle * sign;
+            reflection = Quaternion.Euler(0, 0, angle) * Vector2.right;
+        }
+
+        // Appliquer la nouvelle vélocité avec une vitesse constante
+        rb.linearVelocity = reflection.normalized * currentSpeed;
+
+        // Ajouter une légère variation aléatoire à l'angle de rebond
+        float randomVariation = Random.Range(-gameManager.bounceAngleVariation, gameManager.bounceAngleVariation);
+        rb.linearVelocity = Quaternion.Euler(0, 0, randomVariation) * rb.linearVelocity;
     }
 
     public void MarkAsCollided()
