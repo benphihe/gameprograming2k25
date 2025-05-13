@@ -438,7 +438,7 @@ public class GameManager : MonoBehaviour
     {
         if (ballCountText != null)
         {
-            ballCountText.text = ballCount.ToString();
+            ballCountText.text = "Balls : " +  ballCount.ToString();
         }
     }
 
@@ -446,7 +446,7 @@ public class GameManager : MonoBehaviour
     {
         if (scoreText != null)
         {
-            scoreText.text = score.ToString();
+            scoreText.text = "Score : " + score.ToString();
         }
     }
     
