@@ -29,7 +29,7 @@ public class GameManager : MonoBehaviour
     public int gridHeight = 8;
     public float blockSize = 1f;
     public float ballSpeed = 15f;
-    public int initialBallCount = 10; // Modifié de 3 à 10 comme demandé
+    public int initialBallCount = 15; // Modifié de 3 à 10 comme demandé
     public float ballSize = 1f;
     
     [Header("Ball Physics Settings")]

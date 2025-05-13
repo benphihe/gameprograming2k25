@@ -861,7 +861,7 @@ MonoBehaviour:
   gridHeight: 5
   blockSize: 1
   ballSpeed: 15
-  initialBallCount: 3
+  initialBallCount: 15
   ballSize: 1
   minLaunchAngle: 20
   maxLaunchAngle: 160
