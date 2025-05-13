@@ -23,6 +23,7 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI scoreText;
     public TextMeshProUGUI ballCountText;
     public TextMeshProUGUI comboText;
+    public TextMeshProUGUI levelText;
     
     [Header("Game Settings")]
     public int gridWidth = 7;
@@ -41,6 +42,11 @@ public class GameManager : MonoBehaviour
     public float maxBallSpeedMultiplier = 1.5f;
     public float bounceAngleVariation = 5f; // Variation d'angle lors des rebonds
     
+    [Header("Difficulty Settings")]
+    public float blockHealthIncreaseRate = 0.2f; // Pourcentage d'augmentation des PV des blocs par niveau
+    public float blockDensityIncreaseRate = 0.05f; // Augmentation de la densité des blocs par niveau
+    public int bonusBallsPerLevel = 3; // Balles supplémentaires par niveau
+    
     private Vector3 launchPosition;
     private Vector2 launchDirection;
     private bool isDragging = false;
@@ -57,6 +63,14 @@ public class GameManager : MonoBehaviour
         new Color(0.3f, 0.7f, 0.9f),  // Blue
         new Color(1f, 0.85f, 0.2f)    // Yellow
     };
+    
+    // Variables pour le système de niveaux
+    private int currentLevel = 1;
+    private float baseBlockSpawnChance = 0.7f;
+    private int totalBlockCount = 0;
+    private bool isLevelCleared = false;
+    private float levelClearCheckInterval = 0.5f;
+    private float levelClearCheckTimer = 0f;
 
     void Awake()
     {
@@ -75,6 +89,7 @@ public class GameManager : MonoBehaviour
         Debug.Log("GameManager.Start() called.");
         ballCount = initialBallCount;
         UpdateBallCountText();
+        UpdateLevelText();
         launchPosition = new Vector3(0, -4.5f, 0);
         InitializeGrid();
         
@@ -104,6 +119,17 @@ public class GameManager : MonoBehaviour
             {
                 currentCombo = 0;
                 UpdateComboText();
+            }
+        }
+        
+        // Vérifier si tous les blocs ont été détruits
+        if (!isLevelCleared)
+        {
+            levelClearCheckTimer += Time.deltaTime;
+            if (levelClearCheckTimer >= levelClearCheckInterval)
+            {
+                CheckForLevelClear();
+                levelClearCheckTimer = 0f;
             }
         }
     }
@@ -230,15 +256,20 @@ public class GameManager : MonoBehaviour
     
     void InitializeGrid()
     {
-        foreach (Transform child in blockContainer)
-        {
-            Destroy(child.gameObject);
-        }
+        // Nettoyer les blocs existants
+        ClearBlocks();
         
-        for (int row = 0; row < 3; row++)
+        // Nombre de lignes initial plus le niveau actuel (min 3, max 6)
+        int rowsToSpawn = Mathf.Clamp(3 + (currentLevel - 1) / 2, 3, 6);
+        
+        totalBlockCount = 0;
+        for (int row = 0; row < rowsToSpawn; row++)
         {
             SpawnRowAtPosition(row);
         }
+        
+        Debug.Log($"Level {currentLevel} initialized with {totalBlockCount} blocks.");
+        isLevelCleared = false;
     }
     
     void SpawnRowAtPosition(int row)
@@ -256,10 +287,12 @@ public class GameManager : MonoBehaviour
         }
         
         float spacing = 0.2f;
+        float spawnChance = baseBlockSpawnChance + blockDensityIncreaseRate * (currentLevel - 1);
+        spawnChance = Mathf.Clamp(spawnChance, 0.5f, 0.9f); // Limiter entre 50% et 90%
         
         for (int col = 0; col < gridWidth; col++)
         {
-            if (Random.value < 0.7f)
+            if (Random.value < spawnChance)
             {
                 Vector2 position = new Vector2(
                     (col - gridWidth / 2) * (blockSize + spacing) + blockSize / 2,
@@ -282,10 +315,36 @@ public class GameManager : MonoBehaviour
                     continue;
                 }
                 
-                // Générer une valeur entre 1 et 3 pour les points de vie
-                int value = Random.Range(1, 4);
+                // Calculer le maximum de points de vie en fonction du niveau
+                int maxHealth = CalculateMaxBlockHealth();
+                
+                // Générer une valeur entre 1 et maxHealth pour les points de vie
+                int value = Random.Range(1, maxHealth + 1);
                 blockScript.Initialize(value, Color.white); // La couleur sera gérée par le Block
+                
+                totalBlockCount++;
             }
+        }
+    }
+    
+    int CalculateMaxBlockHealth()
+    {
+        // Niveau 1-3: max 3 PV
+        // Niveau 4-6: max 4 PV
+        // Niveau 7+: max 5 PV
+        if (currentLevel <= 3)
+            return 3;
+        else if (currentLevel <= 6)
+            return 4;
+        else
+            return 5;
+    }
+    
+    void ClearBlocks()
+    {
+        foreach (Transform child in blockContainer)
+        {
+            Destroy(child.gameObject);
         }
     }
     
@@ -300,6 +359,13 @@ public class GameManager : MonoBehaviour
         activeBalls.Remove(ball);
         Destroy(ball);
 
+        // Si toutes les balles sont revenues et qu'il n'y en a plus à lancer
+        if (activeBalls.Count == 0 && ballCount <= 0)
+        {
+            // Vérifier si le niveau est terminé
+            CheckForLevelClear();
+        }
+        
         if (ballCount > 0)
         {
             canLaunch = true;
@@ -307,7 +373,7 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            Debug.Log("GameManager.BallReturned() - Out of balls, game over!");
+            Debug.Log("GameManager.BallReturned() - Out of balls, waiting for all balls to return.");
         }
     }
     
@@ -315,6 +381,9 @@ public class GameManager : MonoBehaviour
     {
         score += (int)(value * (1 + currentCombo * 0.5f));
         UpdateScoreText();
+        
+        // Décrémenter le nombre total de blocs
+        totalBlockCount--;
         
         // Gestion du combo
         currentCombo++;
@@ -328,9 +397,49 @@ public class GameManager : MonoBehaviour
         }
     }
     
+    void CheckForLevelClear()
+    {
+        // Vérifier si tous les blocs ont été détruits
+        if (totalBlockCount <= 0 && !isLevelCleared)
+        {
+            Debug.Log("All blocks destroyed! Starting next level.");
+            isLevelCleared = true;
+            StartCoroutine(StartNextLevel());
+        }
+    }
+    
+    IEnumerator StartNextLevel()
+    {
+        // Attendre un court délai pour que les power-ups et les effets se terminent
+        yield return new WaitForSeconds(1.5f);
+        
+        // Augmenter le niveau
+        currentLevel++;
+        UpdateLevelText();
+        
+        // Ajouter des balles supplémentaires
+        ballCount += initialBallCount + bonusBallsPerLevel * (currentLevel - 1);
+        UpdateBallCountText();
+        
+        // Réinitialiser le combo
+        currentCombo = 0;
+        UpdateComboText();
+        
+        // Initialiser une nouvelle grille avec une difficulté accrue
+        InitializeGrid();
+        
+        // Permettre de lancer à nouveau
+        canLaunch = true;
+        
+        Debug.Log($"Level {currentLevel} started. Ball count: {ballCount}");
+    }
+    
     void UpdateBallCountText()
     {
-        ballCountText.text = ballCount.ToString();
+        if (ballCountText != null)
+        {
+            ballCountText.text = ballCount.ToString();
+        }
     }
 
     void UpdateScoreText()
@@ -338,6 +447,14 @@ public class GameManager : MonoBehaviour
         if (scoreText != null)
         {
             scoreText.text = score.ToString();
+        }
+    }
+    
+    void UpdateLevelText()
+    {
+        if (levelText != null)
+        {
+            levelText.text = "Niveau " + currentLevel;
         }
     }
 
