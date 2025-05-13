@@ -5,7 +5,7 @@ public class MainMenu : MonoBehaviour
 {
     public void StartNewGame()
     {
-        SceneManager.LoadScene("GameScene"); // Remplacez "GameScene" par le nom de votre scène de jeu
+        SceneManager.LoadScene("MainScene"); // Remplacez "GameScene" par le nom de votre scène de jeu
     }
 
     public void OpenLevelSelection()
