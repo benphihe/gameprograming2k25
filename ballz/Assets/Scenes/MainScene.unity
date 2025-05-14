@@ -858,12 +858,14 @@ MonoBehaviour:
   ballCountText: {fileID: 387801463}
   comboText: {fileID: 0}
   levelText: {fileID: 0}
+  progressionPointsText: {fileID: 0}
   gridWidth: 10
   gridHeight: 5
   blockSize: 1
   ballSpeed: 15
   initialBallCount: 15
   ballSize: 1
+  baseBallDamage: 1
   minLaunchAngle: 20
   maxLaunchAngle: 160
   minBallSpeed: 8
@@ -874,6 +876,15 @@ MonoBehaviour:
   blockHealthIncreaseRate: 0.2
   blockDensityIncreaseRate: 0.05
   bonusBallsPerLevel: 3
+  progressionPoints: 0
+  score: 0
+  blocksDestroyed: 0
+  blocksForPoint: 10
+  ballDamageMultiplier: 1
+  ballSizeMultiplier: 1
+  ballSpeedMultiplier: 1
+  extraBallsPerRun: 0
+  powerUpDropRateMultiplier: 1
 --- !u!4 &632262958
 Transform:
   m_ObjectHideFlags: 0

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -24,14 +25,16 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI ballCountText;
     public TextMeshProUGUI comboText;
     public TextMeshProUGUI levelText;
+    public TextMeshProUGUI progressionPointsText;
     
     [Header("Game Settings")]
     public int gridWidth = 7;
     public int gridHeight = 8;
     public float blockSize = 1f;
     public float ballSpeed = 15f;
-    public int initialBallCount = 15; // Modifié de 3 à 10 comme demandé
+    public int initialBallCount = 15;
     public float ballSize = 1f;
+    public int baseBallDamage = 1; // Dégâts de base de la balle
     
     [Header("Ball Physics Settings")]
     public float minLaunchAngle = 20f;
@@ -40,17 +43,27 @@ public class GameManager : MonoBehaviour
     public float maxBallSpeed = 20f;
     public float bounceEnergyLoss = 0.1f;
     public float maxBallSpeedMultiplier = 1.5f;
-    public float bounceAngleVariation = 5f; // Variation d'angle lors des rebonds
+    public float bounceAngleVariation = 5f;
     
     [Header("Difficulty Settings")]
-    public float blockHealthIncreaseRate = 0.2f; // Pourcentage d'augmentation des PV des blocs par niveau
-    public float blockDensityIncreaseRate = 0.05f; // Augmentation de la densité des blocs par niveau
-    public int bonusBallsPerLevel = 3; // Balles supplémentaires par niveau
+    public float blockHealthIncreaseRate = 0.2f;
+    public float blockDensityIncreaseRate = 0.05f;
+    public int bonusBallsPerLevel = 3;
+
+    [Header("Progression System")]
+    public int progressionPoints = 0;
+    public int score = 0;
+    public int blocksDestroyed = 0; // Compteur de blocs détruits
+    public int blocksForPoint = 10; // Nombre de blocs à détruire pour gagner 1 point
+    public float ballDamageMultiplier = 1f;
+    public float ballSizeMultiplier = 1f;
+    public float ballSpeedMultiplier = 1f;
+    public int extraBallsPerRun = 0;
+    public float powerUpDropRateMultiplier = 1f;
     
     private Vector3 launchPosition;
     private Vector2 launchDirection;
     private bool isDragging = false;
-    private int score = 0;
     private int ballCount;
     private bool canLaunch = true;
     private List<GameObject> activeBalls = new List<GameObject>();
@@ -87,24 +100,29 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         Debug.Log("GameManager.Start() called.");
-        ballCount = initialBallCount;
+        LoadProgression();
+        ballCount = initialBallCount + extraBallsPerRun;
         UpdateBallCountText();
         UpdateLevelText();
+        UpdateProgressionPointsText();
         launchPosition = new Vector3(0, -4.5f, 0);
         InitializeGrid();
         
-        // Configuration de la ligne de trajectoire
         if (trajectoryLine != null)
         {
-            trajectoryLine.positionCount = 20; // Plus de points pour une meilleure visualisation
-            trajectoryLine.startWidth = 0.1f;  // Ligne plus fine au début
-            trajectoryLine.endWidth = 0.02f;   // Ligne qui s'affine à la fin
+            trajectoryLine.positionCount = 20;
+            trajectoryLine.startWidth = 0.1f;
+            trajectoryLine.endWidth = 0.02f;
         }
     }
     
     void Update()
     {
-        HandleInput();
+        // Ne pas gérer les entrées si nous sommes dans le menu de progression
+        if (SceneManager.GetActiveScene().name != "ProgressionMenu")
+        {
+            HandleInput();
+        }
 
         if (activeBalls.Count == 0 && !canLaunch && ballCount > 0)
         {
@@ -136,6 +154,9 @@ public class GameManager : MonoBehaviour
     
     void HandleInput()
     {
+        // Ne pas gérer les entrées si nous sommes dans le menu de progression
+        if (SceneManager.GetActiveScene().name == "ProgressionMenu") return;
+        
         if (!canLaunch || ballCount <= 0) return;
         
         if (Input.GetMouseButtonDown(0))
@@ -143,7 +164,10 @@ public class GameManager : MonoBehaviour
             dragStartPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             dragStartPosition.z = 0;
             isDragging = true;
-            trajectoryLine.gameObject.SetActive(true);
+            if (trajectoryLine != null)
+            {
+                trajectoryLine.gameObject.SetActive(true);
+            }
             Debug.Log("GameManager.HandleInput() - Mouse Down.");
         }
         
@@ -177,7 +201,10 @@ public class GameManager : MonoBehaviour
             launchDirection = direction.normalized;
             
             // Visualiser la trajectoire avec une courbe balistique
-            DrawTrajectoryLine(launchPosition, launchDirection * ballSpeed);
+            if (trajectoryLine != null)
+            {
+                DrawTrajectoryLine(launchPosition, launchDirection * ballSpeed);
+            }
             
             Debug.Log("GameManager.HandleInput() - Dragging. Launch direction: " + launchDirection);
         }
@@ -185,7 +212,10 @@ public class GameManager : MonoBehaviour
         if (Input.GetMouseButtonUp(0) && isDragging)
         {
             isDragging = false;
-            trajectoryLine.gameObject.SetActive(false);
+            if (trajectoryLine != null)
+            {
+                trajectoryLine.gameObject.SetActive(false);
+            }
             LaunchBall();
             Debug.Log("GameManager.HandleInput() - Mouse Up, LaunchBall() called.");
         }
@@ -363,7 +393,17 @@ public class GameManager : MonoBehaviour
         if (activeBalls.Count == 0 && ballCount <= 0)
         {
             // Vérifier si le niveau est terminé
-            CheckForLevelClear();
+            if (totalBlockCount > 0)
+            {
+                // Si il reste des blocs, c'est une défaite
+                Debug.Log("Game Over - No more balls and blocks remaining!");
+                GameOver();
+            }
+            else
+            {
+                // Si tous les blocs sont détruits, passer au niveau suivant
+                CheckForLevelClear();
+            }
         }
         
         if (ballCount > 0)
@@ -379,7 +419,22 @@ public class GameManager : MonoBehaviour
     
     public void BlockDestroyed(int value)
     {
-        score += (int)(value * (1 + currentCombo * 0.5f));
+        // Calculer le score
+        int scoreGain = (int)(value * (1 + currentCombo * 0.5f));
+        score += scoreGain;
+        
+        // Incrémenter le compteur de blocs détruits
+        blocksDestroyed++;
+        
+        // Vérifier si on doit donner un point de progression
+        if (blocksDestroyed >= blocksForPoint)
+        {
+            progressionPoints++;
+            blocksDestroyed = 0;
+            UpdateProgressionPointsText();
+            SaveProgression();
+        }
+        
         UpdateScoreText();
         
         // Décrémenter le nombre total de blocs
@@ -391,7 +446,7 @@ public class GameManager : MonoBehaviour
         UpdateComboText();
 
         // Chance de faire apparaître un power-up
-        if (Random.value < powerUpDropChance)
+        if (Random.value < powerUpDropChance * powerUpDropRateMultiplier)
         {
             SpawnPowerUp();
         }
@@ -446,7 +501,7 @@ public class GameManager : MonoBehaviour
     {
         if (scoreText != null)
         {
-            scoreText.text = "Score : " + score.ToString();
+            scoreText.text = $"Score : {score}";
         }
     }
     
@@ -486,5 +541,67 @@ public class GameManager : MonoBehaviour
                 comboText.gameObject.SetActive(false);
             }
         }
+    }
+
+    void UpdateProgressionPointsText()
+    {
+        if (progressionPointsText != null)
+        {
+            progressionPointsText.text = $"Points de progression : {progressionPoints}";
+        }
+    }
+
+    public void GameOver()
+    {
+        Debug.Log("Game Over - Saving progression and loading progression menu");
+        
+        // Sauvegarder les points de progression
+        SaveProgression();
+        
+        // Arrêter toutes les coroutines en cours
+        StopAllCoroutines();
+        
+        // Détruire toutes les balles actives
+        foreach (GameObject ball in activeBalls.ToArray())
+        {
+            if (ball != null)
+            {
+                Destroy(ball);
+            }
+        }
+        activeBalls.Clear();
+        
+        // Charger le menu de progression
+        SceneManager.LoadScene("ProgressionMenu");
+    }
+
+    public void SaveProgression()
+    {
+        PlayerPrefs.SetInt("ProgressionPoints", progressionPoints);
+        PlayerPrefs.SetInt("Score", score);
+        PlayerPrefs.SetInt("BlocksDestroyed", blocksDestroyed);
+        PlayerPrefs.SetFloat("BallDamageMultiplier", ballDamageMultiplier);
+        PlayerPrefs.SetFloat("BallSizeMultiplier", ballSizeMultiplier);
+        PlayerPrefs.SetFloat("BallSpeedMultiplier", ballSpeedMultiplier);
+        PlayerPrefs.SetInt("ExtraBallsPerRun", extraBallsPerRun);
+        PlayerPrefs.SetFloat("PowerUpDropRateMultiplier", powerUpDropRateMultiplier);
+        PlayerPrefs.Save();
+    }
+
+    public void LoadProgression()
+    {
+        progressionPoints = PlayerPrefs.GetInt("ProgressionPoints", 0);
+        score = PlayerPrefs.GetInt("Score", 0);
+        blocksDestroyed = PlayerPrefs.GetInt("BlocksDestroyed", 0);
+        ballDamageMultiplier = PlayerPrefs.GetFloat("BallDamageMultiplier", 1f);
+        ballSizeMultiplier = PlayerPrefs.GetFloat("BallSizeMultiplier", 1f);
+        ballSpeedMultiplier = PlayerPrefs.GetFloat("BallSpeedMultiplier", 1f);
+        extraBallsPerRun = PlayerPrefs.GetInt("ExtraBallsPerRun", 0);
+        powerUpDropRateMultiplier = PlayerPrefs.GetFloat("PowerUpDropRateMultiplier", 1f);
+    }
+
+    public int CalculateBallDamage()
+    {
+        return Mathf.RoundToInt(baseBallDamage * ballDamageMultiplier);
     }
 }
