@@ -47,11 +47,30 @@ public class Ball : MonoBehaviour
 
     public void Initialize(Vector2 launchDirection, GameManager manager)
     {
+        if (manager == null)
+        {
+            Debug.LogError("GameManager is null in Ball.Initialize!");
+            return;
+        }
+
         gameManager = manager;
         if (rb != null)
         {
-            currentSpeed = gameManager.ballSpeed;
+            // Appliquer les multiplicateurs de progression
+            float speedMultiplier = 1f;
+            float sizeMultiplier = 1f;
+
+            if (ProgressionManager.Instance != null)
+            {
+                speedMultiplier = ProgressionManager.Instance.ballSpeedMultiplier;
+                sizeMultiplier = ProgressionManager.Instance.ballSizeMultiplier;
+            }
+
+            currentSpeed = gameManager.ballSpeed * speedMultiplier;
             rb.linearVelocity = launchDirection * currentSpeed;
+            
+            // Appliquer le multiplicateur de taille
+            transform.localScale = Vector3.one * gameManager.ballSize * sizeMultiplier;
         }
         lastPosition = transform.position;
         prevPosition = lastPosition;
@@ -130,99 +149,33 @@ public class Ball : MonoBehaviour
         }
     }
 
-    void OnCollisionEnter2D(Collision2D collision)
+    private void OnCollisionEnter2D(Collision2D collision)
     {
-        // Si la balle touche un bloc, on lui inflige des dégâts
         if (collision.gameObject.CompareTag("Block"))
         {
-            Block blockScript = collision.gameObject.GetComponent<Block>();
-            if (blockScript != null)
+            Block block = collision.gameObject.GetComponent<Block>();
+            if (block != null)
             {
-                blockScript.TakeDamage(1);
-                Debug.Log("Ball hit block: " + collision.gameObject.name);
+                int damage = gameManager.CalculateBallDamage();
+                block.TakeDamage(damage);
             }
-
-            // Ne pas marquer la balle comme "collidée" ici pour qu'elle continue à rebondir
-            HandleBounce(collision);
-            return;
         }
-
-        // Gestion du retour de la balle (par exemple, si elle touche le bas de l'écran ou une zone de retour)
-        if (!hasCollided)
-        {
-            if (collision.gameObject.CompareTag("ReturnZone") || 
+        else if (collision.gameObject.CompareTag("ReturnZone") || 
                 collision.gameObject.name.Contains("Ground") ||
                 collision.gameObject.layer == LayerMask.NameToLayer("Ground") ||
-                collision.gameObject.transform.position.y < -4.0f)  
+                collision.gameObject.transform.position.y < -4.0f)
+        {
+            hasCollided = true;
+            if (gameManager != null)
             {
-                hasCollided = true;
-                if (gameManager != null)
-                {
-                    gameManager.BallReturned(gameObject);
-                }
-                else
-                {
-                    Debug.LogError("GameManager is null in Ball.cs!");
-                    Destroy(gameObject);
-                }
-            }
-            else
-            {
-                // Détecter les rebonds consécutifs rapides
-                if (Time.time - lastBounceTime < consecutiveBounceTimeThreshold)
-                {
-                    consecutiveBounces++;
-                    
-                    // Si trop de rebonds consécutifs, ajouter une variation plus importante
-                    if (consecutiveBounces > 3)
-                    {
-                        // Ajouter une variation plus importante
-                        float strongVariation = Random.Range(20f, 40f) * (Random.value > 0.5f ? 1f : -1f);
-                        rb.linearVelocity = Quaternion.Euler(0, 0, strongVariation) * rb.linearVelocity;
-                        consecutiveBounces = 0;
-                        Debug.Log("Applied strong variation after consecutive bounces");
-                    }
-                }
-                else
-                {
-                    consecutiveBounces = 0;
-                }
-                
-                lastBounceTime = Time.time;
-                HandleBounce(collision);
+                gameManager.BallReturned(gameObject);
             }
         }
     }
 
-    void HandleBounce(Collision2D collision)
+    void OnCollisionExit2D(Collision2D collision)
     {
-        ContactPoint2D contact = collision.contacts[0];
-        Vector2 normal = contact.normal;
-        Vector2 incomingVelocity = lastVelocity;
-
-        // Calculer la nouvelle direction de rebond
-        Vector2 reflection = Vector2.Reflect(incomingVelocity.normalized, normal);
-
-        // Correction d'angle pour éviter les trajectoires trop horizontales ou verticales
-        float minAngle = 20f; // angle minimum par rapport à l'axe horizontal (augmenté de 15 à 20)
-        float angleWithHorizontal = Mathf.Abs(Vector2.Angle(reflection, Vector2.right));
-        
-        if (angleWithHorizontal < minAngle || angleWithHorizontal > 180f - minAngle)
-        {
-            float sign = Mathf.Sign(reflection.y);
-            float angle = minAngle * sign;
-            reflection = Quaternion.Euler(0, 0, angle) * Vector2.right;
-        }
-
-        // Appliquer la nouvelle vélocité avec une vitesse constante
-        rb.linearVelocity = reflection.normalized * currentSpeed;
-
-        // Ajouter une variation aléatoire à l'angle de rebond plus importante
-        float randomVariation = Random.Range(-gameManager.bounceAngleVariation * 1.5f, gameManager.bounceAngleVariation * 1.5f);
-        rb.linearVelocity = Quaternion.Euler(0, 0, randomVariation) * rb.linearVelocity;
-        
-        // Appliquer une légère impulsion pour éviter de rester coincé
-        rb.AddForce(normal * 0.5f, ForceMode2D.Impulse);
+        // Supprimer cette méthode car elle cause des dégâts en double
     }
 
     public void MarkAsCollided()

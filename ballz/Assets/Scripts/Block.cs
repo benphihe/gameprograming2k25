@@ -18,6 +18,12 @@ public class Block : MonoBehaviour
     void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer == null)
+        {
+            Debug.LogError("SpriteRenderer not found on Block!");
+            return;
+        }
+
         // Créer le texte pour afficher les points de vie
         GameObject textObj = new GameObject("HealthText");
         textObj.transform.SetParent(transform);
@@ -27,6 +33,12 @@ public class Block : MonoBehaviour
         healthText.fontSize = 3;
         healthText.color = Color.white;
         healthText.sortingOrder = 1;
+
+        // Vérifier que le GameManager existe
+        if (GameManager.Instance == null)
+        {
+            Debug.LogWarning("GameManager instance not found in Block.Awake!");
+        }
     }
 
     public void Initialize(int value, Color color)
@@ -39,6 +51,9 @@ public class Block : MonoBehaviour
     public void TakeDamage(int damage)
     {
         health -= damage;
+        Debug.Log($"Block took {damage} damage. Health remaining: {health}");
+        UpdateVisuals();
+        
         if (health <= 0)
         {
             if (GameManager.Instance != null)
@@ -47,13 +62,24 @@ public class Block : MonoBehaviour
             }
             Destroy(gameObject);
         }
-        else
-        {
-            UpdateVisuals();
-        }
     }
 
     private void UpdateVisuals()
+    {
+        // Mettre à jour la couleur en fonction des points de vie
+        if (health > 0 && health <= healthColors.Length)
+        {
+            spriteRenderer.color = healthColors[health - 1];
+        }
+        
+        // Mettre à jour le texte des points de vie
+        if (healthText != null)
+        {
+            healthText.text = health.ToString();
+        }
+    }
+
+    private void UpdateColor()
     {
         // Mettre à jour la couleur en fonction des points de vie
         spriteRenderer.color = healthColors[health - 1];
