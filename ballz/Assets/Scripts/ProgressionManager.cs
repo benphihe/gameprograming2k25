@@ -29,7 +29,7 @@ public class ProgressionManager : MonoBehaviour
 
     void Start()
     {
-        LoadProgression();
+        ResetProgression();
     }
 
     public void SaveProgression()
