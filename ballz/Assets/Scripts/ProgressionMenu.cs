@@ -15,7 +15,15 @@ public class ProgressionMenu : MonoBehaviour
     public TextMeshProUGUI[] upgradeLevelTexts;
 
     private ProgressionManager progressionManager;
-    private const int UPGRADE_COST = 1; // Coût fixe de 1 point pour chaque amélioration
+    private const int DAMAGE_UPGRADE_COST = 3; // Coût de 3 points pour l'amélioration des dégâts
+    private const int STANDARD_UPGRADE_COST = 1; // Coût de 1 point pour les autres améliorations
+
+    // Niveaux actuels des améliorations
+    private int ballDamageLevel = 0;
+    private int ballSizeLevel = 0;
+    private int ballSpeedLevel = 0;
+    private int extraBallsLevel = 0;
+    private int powerUpRateLevel = 0;
 
     void Awake()
     {
@@ -58,14 +66,16 @@ public class ProgressionMenu : MonoBehaviour
             }
         }
 
-        // Obtenir le ProgressionManager
-        progressionManager = ProgressionManager.Instance;
-        if (progressionManager == null)
+        // Obtenir ou créer le ProgressionManager
+        if (ProgressionManager.Instance == null)
         {
-            Debug.LogError("ProgressionManager instance not found! Make sure it exists in the scene.");
+            Debug.Log("Création d'une nouvelle instance de ProgressionManager");
+            GameObject progressionManagerObj = new GameObject("ProgressionManager");
+            progressionManager = progressionManagerObj.AddComponent<ProgressionManager>();
         }
         else
         {
+            progressionManager = ProgressionManager.Instance;
             Debug.Log("ProgressionManager trouvé!");
         }
     }
@@ -96,12 +106,31 @@ public class ProgressionMenu : MonoBehaviour
         // Mettre à jour le texte des points de progression
         if (progressionPointsText != null)
         {
-            progressionPointsText.text = $"Points disponibles : {progressionManager.progressionPoints}";
+            progressionPointsText.text = $"Points : {progressionManager.progressionPoints}";
             Debug.Log($"Points de progression mis à jour: {progressionManager.progressionPoints}");
         }
         else
         {
             Debug.LogError("progressionPointsText n'est pas assigné!");
+        }
+
+        // Mettre à jour les textes des niveaux
+        if (upgradeLevelTexts != null)
+        {
+            if (upgradeLevelTexts.Length > 0 && upgradeLevelTexts[0] != null) 
+                upgradeLevelTexts[0].text = $"Niveau {ballDamageLevel}";
+            if (upgradeLevelTexts.Length > 1 && upgradeLevelTexts[1] != null) 
+                upgradeLevelTexts[1].text = $"Niveau {ballSizeLevel}";
+            if (upgradeLevelTexts.Length > 2 && upgradeLevelTexts[2] != null) 
+                upgradeLevelTexts[2].text = $"Niveau {ballSpeedLevel}";
+            if (upgradeLevelTexts.Length > 3 && upgradeLevelTexts[3] != null) 
+                upgradeLevelTexts[3].text = $"Niveau {extraBallsLevel}";
+            if (upgradeLevelTexts.Length > 4 && upgradeLevelTexts[4] != null) 
+                upgradeLevelTexts[4].text = $"Niveau {powerUpRateLevel}";
+        }
+        else
+        {
+            Debug.LogError("upgradeLevelTexts n'est pas assigné!");
         }
 
         // Mettre à jour les boutons d'amélioration
@@ -114,6 +143,12 @@ public class ProgressionMenu : MonoBehaviour
         if (progressionManager == null)
         {
             Debug.LogError("ProgressionManager est null dans UpdateUpgradeButtons!");
+            return;
+        }
+
+        if (upgradeButtons == null)
+        {
+            Debug.LogError("upgradeButtons n'est pas assigné!");
             return;
         }
 
@@ -132,9 +167,18 @@ public class ProgressionMenu : MonoBehaviour
                 continue;
             }
 
-            bool canAfford = progressionManager.progressionPoints >= UPGRADE_COST;
+            // Vérifier si on a assez de points pour l'amélioration
+            int cost = (i == 0) ? DAMAGE_UPGRADE_COST : STANDARD_UPGRADE_COST; // Le premier bouton (index 0) est pour les dégâts
+            bool canAfford = progressionManager.progressionPoints >= cost;
+            Debug.Log($"Bouton {i}: Points disponibles = {progressionManager.progressionPoints}, Coût = {cost}, Peut acheter = {canAfford}");
+            
             button.interactable = canAfford;
-            Debug.Log($"Bouton {i} ({upgradeButtons[i].name}) interactable: {canAfford}");
+            
+            // Changer la couleur du bouton en fonction de l'état
+            ColorBlock colors = button.colors;
+            colors.normalColor = canAfford ? Color.white : Color.gray;
+            colors.disabledColor = Color.gray;
+            button.colors = colors;
         }
     }
 
@@ -147,17 +191,18 @@ public class ProgressionMenu : MonoBehaviour
             return;
         }
 
-        if (progressionManager.progressionPoints >= UPGRADE_COST)
+        if (progressionManager.progressionPoints >= DAMAGE_UPGRADE_COST)
         {
-            Debug.Log("Amélioration achetée: Dégâts de balle");
-            progressionManager.ballDamageMultiplier += 0.1f;
-            progressionManager.progressionPoints -= UPGRADE_COST;
+            Debug.Log($"Amélioration achetée: Dégâts de balle (Coût: {DAMAGE_UPGRADE_COST}, Points restants: {progressionManager.progressionPoints - DAMAGE_UPGRADE_COST})");
+            progressionManager.ballDamageMultiplier += 1f;
+            progressionManager.progressionPoints -= DAMAGE_UPGRADE_COST;
+            ballDamageLevel++;
             progressionManager.SaveProgression();
             UpdateUI();
         }
         else
         {
-            Debug.Log("Pas assez de points pour l'amélioration");
+            Debug.Log($"Pas assez de points pour l'amélioration (Points: {progressionManager.progressionPoints}, Coût: {DAMAGE_UPGRADE_COST})");
         }
     }
 
@@ -170,17 +215,18 @@ public class ProgressionMenu : MonoBehaviour
             return;
         }
 
-        if (progressionManager.progressionPoints >= UPGRADE_COST)
+        if (progressionManager.progressionPoints >= STANDARD_UPGRADE_COST)
         {
-            Debug.Log("Amélioration achetée: Taille de balle");
+            Debug.Log($"Amélioration achetée: Taille de balle (Coût: {STANDARD_UPGRADE_COST}, Points restants: {progressionManager.progressionPoints - STANDARD_UPGRADE_COST})");
             progressionManager.ballSizeMultiplier -= 0.1f;
-            progressionManager.progressionPoints -= UPGRADE_COST;
+            progressionManager.progressionPoints -= STANDARD_UPGRADE_COST;
+            ballSizeLevel++;
             progressionManager.SaveProgression();
             UpdateUI();
         }
         else
         {
-            Debug.Log("Pas assez de points pour l'amélioration");
+            Debug.Log($"Pas assez de points pour l'amélioration (Points: {progressionManager.progressionPoints}, Coût: {STANDARD_UPGRADE_COST})");
         }
     }
 
@@ -193,17 +239,18 @@ public class ProgressionMenu : MonoBehaviour
             return;
         }
 
-        if (progressionManager.progressionPoints >= UPGRADE_COST)
+        if (progressionManager.progressionPoints >= STANDARD_UPGRADE_COST)
         {
-            Debug.Log("Amélioration achetée: Vitesse de balle");
+            Debug.Log($"Amélioration achetée: Vitesse de balle (Coût: {STANDARD_UPGRADE_COST}, Points restants: {progressionManager.progressionPoints - STANDARD_UPGRADE_COST})");
             progressionManager.ballSpeedMultiplier += 0.1f;
-            progressionManager.progressionPoints -= UPGRADE_COST;
+            progressionManager.progressionPoints -= STANDARD_UPGRADE_COST;
+            ballSpeedLevel++;
             progressionManager.SaveProgression();
             UpdateUI();
         }
         else
         {
-            Debug.Log("Pas assez de points pour l'amélioration");
+            Debug.Log($"Pas assez de points pour l'amélioration (Points: {progressionManager.progressionPoints}, Coût: {STANDARD_UPGRADE_COST})");
         }
     }
 
@@ -216,17 +263,18 @@ public class ProgressionMenu : MonoBehaviour
             return;
         }
 
-        if (progressionManager.progressionPoints >= UPGRADE_COST)
+        if (progressionManager.progressionPoints >= STANDARD_UPGRADE_COST)
         {
-            Debug.Log("Amélioration achetée: Balles supplémentaires");
+            Debug.Log($"Amélioration achetée: Balles supplémentaires (Coût: {STANDARD_UPGRADE_COST}, Points restants: {progressionManager.progressionPoints - STANDARD_UPGRADE_COST})");
             progressionManager.extraBallsPerRun++;
-            progressionManager.progressionPoints -= UPGRADE_COST;
+            progressionManager.progressionPoints -= STANDARD_UPGRADE_COST;
+            extraBallsLevel++;
             progressionManager.SaveProgression();
             UpdateUI();
         }
         else
         {
-            Debug.Log("Pas assez de points pour l'amélioration");
+            Debug.Log($"Pas assez de points pour l'amélioration (Points: {progressionManager.progressionPoints}, Coût: {STANDARD_UPGRADE_COST})");
         }
     }
 
@@ -239,17 +287,18 @@ public class ProgressionMenu : MonoBehaviour
             return;
         }
 
-        if (progressionManager.progressionPoints >= UPGRADE_COST)
+        if (progressionManager.progressionPoints >= STANDARD_UPGRADE_COST)
         {
-            Debug.Log("Amélioration achetée: Taux de power-ups");
+            Debug.Log($"Amélioration achetée: Taux de power-ups (Coût: {STANDARD_UPGRADE_COST}, Points restants: {progressionManager.progressionPoints - STANDARD_UPGRADE_COST})");
             progressionManager.powerUpDropRateMultiplier += 0.1f;
-            progressionManager.progressionPoints -= UPGRADE_COST;
+            progressionManager.progressionPoints -= STANDARD_UPGRADE_COST;
+            powerUpRateLevel++;
             progressionManager.SaveProgression();
             UpdateUI();
         }
         else
         {
-            Debug.Log("Pas assez de points pour l'amélioration");
+            Debug.Log($"Pas assez de points pour l'amélioration (Points: {progressionManager.progressionPoints}, Coût: {STANDARD_UPGRADE_COST})");
         }
     }
 

@@ -57,11 +57,20 @@ public class Ball : MonoBehaviour
         if (rb != null)
         {
             // Appliquer les multiplicateurs de progression
-            currentSpeed = gameManager.ballSpeed * gameManager.ballSpeedMultiplier;
+            float speedMultiplier = 1f;
+            float sizeMultiplier = 1f;
+
+            if (ProgressionManager.Instance != null)
+            {
+                speedMultiplier = ProgressionManager.Instance.ballSpeedMultiplier;
+                sizeMultiplier = ProgressionManager.Instance.ballSizeMultiplier;
+            }
+
+            currentSpeed = gameManager.ballSpeed * speedMultiplier;
             rb.linearVelocity = launchDirection * currentSpeed;
             
             // Appliquer le multiplicateur de taille
-            transform.localScale = Vector3.one * gameManager.ballSize * gameManager.ballSizeMultiplier;
+            transform.localScale = Vector3.one * gameManager.ballSize * sizeMultiplier;
         }
         lastPosition = transform.position;
         prevPosition = lastPosition;

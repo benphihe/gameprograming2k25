@@ -32,7 +32,7 @@ public class GameManager : MonoBehaviour
     public int gridHeight = 8;
     public float blockSize = 1f;
     public float ballSpeed = 15f;
-    public int initialBallCount = 15;
+    public int initialBallCount = 5;
     public float ballSize = 1f;
     public int baseBallDamage = 1; // Dégâts de base de la balle
     
@@ -99,9 +99,17 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        Debug.Log("GameManager.Start() called.");
-        LoadProgression();
-        ballCount = initialBallCount + extraBallsPerRun;
+        Debug.Log("GameManager.Start() appelé");
+        
+        // Charger la progression au démarrage
+        if (ProgressionManager.Instance != null)
+        {
+            LoadProgression();
+        }
+        
+        // S'assurer que le nombre initial de balles est bien de 5
+        initialBallCount = 5;
+        ballCount = initialBallCount + ProgressionManager.Instance.extraBallsPerRun;
         UpdateBallCountText();
         UpdateLevelText();
         UpdateProgressionPointsText();
@@ -113,6 +121,15 @@ public class GameManager : MonoBehaviour
             trajectoryLine.positionCount = 20;
             trajectoryLine.startWidth = 0.1f;
             trajectoryLine.endWidth = 0.02f;
+        }
+    }
+
+    void OnApplicationQuit()
+    {
+        // Réinitialiser la progression quand l'application est fermée
+        if (ProgressionManager.Instance != null)
+        {
+            ProgressionManager.Instance.ResetProgression();
         }
     }
     
@@ -249,7 +266,7 @@ public class GameManager : MonoBehaviour
     {
         if (!gameObject.activeInHierarchy)
         {
-            Debug.LogWarning("GameManager was inactive. Activating it now.");
+            Debug.LogWarning("GameManager était inactif. Activation maintenant.");
             gameObject.SetActive(true);
         }
 
@@ -257,7 +274,9 @@ public class GameManager : MonoBehaviour
         {
             StartCoroutine(LaunchBallsSequentially());
             canLaunch = false;
-            Debug.Log("GameManager.LaunchBall() called. Starting coroutine.");
+            // Mettre à jour l'affichage des points de progression
+            UpdateProgressionPointsText();
+            Debug.Log("GameManager.LaunchBall() appelé. Démarrage de la coroutine.");
         }
     }
     
@@ -431,8 +450,11 @@ public class GameManager : MonoBehaviour
         {
             progressionPoints++;
             blocksDestroyed = 0;
+            // Mettre à jour l'affichage des points de progression immédiatement
             UpdateProgressionPointsText();
+            // Sauvegarder la progression
             SaveProgression();
+            Debug.Log($"Point de progression gagné! Total: {progressionPoints}");
         }
         
         UpdateScoreText();
@@ -446,10 +468,7 @@ public class GameManager : MonoBehaviour
         UpdateComboText();
 
         // Chance de faire apparaître un power-up
-        if (Random.value < powerUpDropChance * powerUpDropRateMultiplier)
-        {
-            SpawnPowerUp();
-        }
+        SpawnPowerUp();
     }
     
     void CheckForLevelClear()
@@ -472,8 +491,9 @@ public class GameManager : MonoBehaviour
         currentLevel++;
         UpdateLevelText();
         
-        // Ajouter des balles supplémentaires
-        ballCount += initialBallCount + bonusBallsPerLevel * (currentLevel - 1);
+        // Garder le même nombre de balles qu'au niveau précédent
+        // Le joueur devra les acheter dans le menu de progression
+        ballCount = initialBallCount + ProgressionManager.Instance.extraBallsPerRun;
         UpdateBallCountText();
         
         // Réinitialiser le combo
@@ -486,7 +506,7 @@ public class GameManager : MonoBehaviour
         // Permettre de lancer à nouveau
         canLaunch = true;
         
-        Debug.Log($"Level {currentLevel} started. Ball count: {ballCount}");
+        Debug.Log($"Niveau {currentLevel} démarré. Nombre de balles: {ballCount}");
     }
     
     void UpdateBallCountText()
@@ -515,16 +535,20 @@ public class GameManager : MonoBehaviour
 
     void SpawnPowerUp()
     {
-        if (powerUpPrefabs.Length == 0) return;
+        if (powerUpPrefabs == null || powerUpPrefabs.Length == 0) return;
 
-        Vector3 spawnPosition = new Vector3(
-            Random.Range(-3f, 3f),
-            Random.Range(0f, 4f),
-            0f
-        );
+        float dropChance = powerUpDropChance;
+        if (ProgressionManager.Instance != null)
+        {
+            dropChance *= ProgressionManager.Instance.powerUpDropRateMultiplier;
+        }
 
-        int randomIndex = Random.Range(0, powerUpPrefabs.Length);
-        GameObject powerUp = Instantiate(powerUpPrefabs[randomIndex], spawnPosition, Quaternion.identity);
+        if (Random.value < dropChance)
+        {
+            int randomIndex = Random.Range(0, powerUpPrefabs.Length);
+            Vector3 spawnPosition = new Vector3(Random.Range(-3f, 3f), Random.Range(-3f, 3f), 0);
+            Instantiate(powerUpPrefabs[randomIndex], spawnPosition, Quaternion.identity);
+        }
     }
 
     void UpdateComboText()
@@ -590,18 +614,27 @@ public class GameManager : MonoBehaviour
 
     public void LoadProgression()
     {
-        progressionPoints = PlayerPrefs.GetInt("ProgressionPoints", 0);
-        score = PlayerPrefs.GetInt("Score", 0);
-        blocksDestroyed = PlayerPrefs.GetInt("BlocksDestroyed", 0);
-        ballDamageMultiplier = PlayerPrefs.GetFloat("BallDamageMultiplier", 1f);
-        ballSizeMultiplier = PlayerPrefs.GetFloat("BallSizeMultiplier", 1f);
-        ballSpeedMultiplier = PlayerPrefs.GetFloat("BallSpeedMultiplier", 1f);
-        extraBallsPerRun = PlayerPrefs.GetInt("ExtraBallsPerRun", 0);
-        powerUpDropRateMultiplier = PlayerPrefs.GetFloat("PowerUpDropRateMultiplier", 1f);
+        if (ProgressionManager.Instance != null)
+        {
+            progressionPoints = ProgressionManager.Instance.progressionPoints;
+            ballDamageMultiplier = ProgressionManager.Instance.ballDamageMultiplier;
+            ballSizeMultiplier = ProgressionManager.Instance.ballSizeMultiplier;
+            ballSpeedMultiplier = ProgressionManager.Instance.ballSpeedMultiplier;
+            extraBallsPerRun = ProgressionManager.Instance.extraBallsPerRun;
+            powerUpDropRateMultiplier = ProgressionManager.Instance.powerUpDropRateMultiplier;
+        }
     }
 
     public int CalculateBallDamage()
     {
-        return Mathf.RoundToInt(baseBallDamage * ballDamageMultiplier);
+        if (ProgressionManager.Instance != null)
+        {
+            // Les dégâts sont maintenant égaux au multiplicateur (qui augmente de 1 par niveau)
+            int damage = Mathf.RoundToInt(ProgressionManager.Instance.ballDamageMultiplier);
+            Debug.Log($"Calcul des dégâts: multiplicateur={ProgressionManager.Instance.ballDamageMultiplier}, dégâts={damage}");
+            return Mathf.Max(1, damage); // Assure un minimum de 1 dégât
+        }
+        Debug.LogWarning("ProgressionManager.Instance est null dans CalculateBallDamage");
+        return baseBallDamage;
     }
 }

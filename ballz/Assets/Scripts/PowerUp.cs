@@ -82,7 +82,7 @@ public class PowerUp : MonoBehaviour
                 break;
 
             case PowerUpType.ExtraBalls:
-                // Ajouter des balles supplémentaires
+                // Ajouter une balle supplémentaire
                 if (gameManager != null)
                 {
                     // Utiliser la réflexion pour accéder à la variable privée ballCount
@@ -90,7 +90,7 @@ public class PowerUp : MonoBehaviour
                     if (field != null)
                     {
                         int currentCount = (int)field.GetValue(gameManager);
-                        field.SetValue(gameManager, currentCount + 3);
+                        field.SetValue(gameManager, currentCount + 1);  // Ajoute une seule balle
                     }
                 }
                 break;
