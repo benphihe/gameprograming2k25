@@ -34,7 +34,7 @@ public class GameManager : MonoBehaviour
     public float ballSpeed = 15f;
     public int initialBallCount = 5;
     public float ballSize = 1f;
-    public int baseBallDamage = 1; // Dégâts de base de la balle
+    public int baseBallDamage = 1;
     
     [Header("Ball Physics Settings")]
     public float minLaunchAngle = 20f;
@@ -53,8 +53,8 @@ public class GameManager : MonoBehaviour
     [Header("Progression System")]
     public int progressionPoints = 0;
     public int score = 0;
-    public int blocksDestroyed = 0; // Compteur de blocs détruits
-    public int blocksForPoint = 10; // Nombre de blocs à détruire pour gagner 1 point
+    public int blocksDestroyed = 0; 
+    public int blocksForPoint = 10;
     public float ballDamageMultiplier = 1f;
     public float ballSizeMultiplier = 1f;
     public float ballSpeedMultiplier = 1f;
@@ -72,12 +72,11 @@ public class GameManager : MonoBehaviour
     private float comboTimeRemaining = 0f;
     private float comboTimeWindow = 2f;
     private Color[] blockColors = new Color[] {
-        new Color(0.95f, 0.3f, 0.6f), // Pink
-        new Color(0.3f, 0.7f, 0.9f),  // Blue
-        new Color(1f, 0.85f, 0.2f)    // Yellow
+        new Color(0.95f, 0.3f, 0.6f),
+        new Color(0.3f, 0.7f, 0.9f), 
+        new Color(1f, 0.85f, 0.2f)  
     };
     
-    // Variables pour le système de niveaux
     private int currentLevel = 1;
     private float baseBlockSpawnChance = 0.7f;
     private int totalBlockCount = 0;
@@ -100,14 +99,10 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         Debug.Log("GameManager.Start() appelé");
-        
-        // Charger la progression au démarrage
         if (ProgressionManager.Instance != null)
         {
             LoadProgression();
         }
-        
-        // S'assurer que le nombre initial de balles est bien de 5
         initialBallCount = 5;
         ballCount = initialBallCount + ProgressionManager.Instance.extraBallsPerRun;
         UpdateBallCountText();
@@ -115,7 +110,6 @@ public class GameManager : MonoBehaviour
         UpdateProgressionPointsText();
         launchPosition = new Vector3(0, -4.5f, 0);
         InitializeGrid();
-        
         if (trajectoryLine != null)
         {
             trajectoryLine.positionCount = 20;
@@ -126,7 +120,6 @@ public class GameManager : MonoBehaviour
 
     void OnApplicationQuit()
     {
-        // Réinitialiser la progression quand l'application est fermée
         if (ProgressionManager.Instance != null)
         {
             ProgressionManager.Instance.ResetProgression();
@@ -135,7 +128,6 @@ public class GameManager : MonoBehaviour
     
     void Update()
     {
-        // Ne pas gérer les entrées si nous sommes dans le menu de progression
         if (SceneManager.GetActiveScene().name != "ProgressionMenu")
         {
             HandleInput();
@@ -146,7 +138,6 @@ public class GameManager : MonoBehaviour
             canLaunch = true;
         }
 
-        // Gestion du combo
         if (comboTimeRemaining > 0)
         {
             comboTimeRemaining -= Time.deltaTime;
@@ -157,7 +148,6 @@ public class GameManager : MonoBehaviour
             }
         }
         
-        // Vérifier si tous les blocs ont été détruits
         if (!isLevelCleared)
         {
             levelClearCheckTimer += Time.deltaTime;
@@ -171,11 +161,8 @@ public class GameManager : MonoBehaviour
     
     void HandleInput()
     {
-        // Ne pas gérer les entrées si nous sommes dans le menu de progression
         if (SceneManager.GetActiveScene().name == "ProgressionMenu") return;
-        
         if (!canLaunch || ballCount <= 0) return;
-        
         if (Input.GetMouseButtonDown(0))
         {
             dragStartPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -187,45 +174,30 @@ public class GameManager : MonoBehaviour
             }
             Debug.Log("GameManager.HandleInput() - Mouse Down.");
         }
-        
         if (isDragging)
         {
             Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             mousePos.z = 0;
-            
-            // Calculer la direction en fonction de la position du toucher et de la position de lancement
             Vector2 direction = (mousePos - launchPosition);
-            
-            // Limiter l'angle de lancement pour un mouvement plus prévisible
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-            
-            // Restreindre l'angle entre minLaunchAngle et maxLaunchAngle
             if (angle < 0) angle += 360f;
-            
             if (angle < minLaunchAngle || angle > maxLaunchAngle)
             {
-                // Fixer l'angle aux limites
                 float clampedAngle;
                 if (Mathf.Abs(angle - minLaunchAngle) < Mathf.Abs(angle - maxLaunchAngle))
                     clampedAngle = minLaunchAngle;
                 else
                     clampedAngle = maxLaunchAngle;
-                
                 float radAngle = clampedAngle * Mathf.Deg2Rad;
                 direction = new Vector2(Mathf.Cos(radAngle), Mathf.Sin(radAngle));
             }
-            
             launchDirection = direction.normalized;
-            
-            // Visualiser la trajectoire avec une courbe balistique
             if (trajectoryLine != null)
             {
                 DrawTrajectoryLine(launchPosition, launchDirection * ballSpeed);
             }
-            
             Debug.Log("GameManager.HandleInput() - Dragging. Launch direction: " + launchDirection);
         }
-        
         if (Input.GetMouseButtonUp(0) && isDragging)
         {
             isDragging = false;
@@ -238,17 +210,12 @@ public class GameManager : MonoBehaviour
         }
     }
     
-    // Méthode pour dessiner une trajectoire balistique plus réaliste
     void DrawTrajectoryLine(Vector3 startPos, Vector2 velocity)
     {
         if (trajectoryLine == null) return;
-        
         Vector3[] points = new Vector3[trajectoryLine.positionCount];
-        
-        // Simuler la physique pour obtenir une trajectoire réaliste
         float timeStep = 0.1f;
-        float gravity = Physics2D.gravity.y * 0.5f; // Utiliser la même gravité que la balle
-        
+        float gravity = Physics2D.gravity.y * 0.5f;
         for (int i = 0; i < points.Length; i++)
         {
             float time = i * timeStep;
@@ -258,7 +225,6 @@ public class GameManager : MonoBehaviour
                 0
             );
         }
-        
         trajectoryLine.SetPositions(points);
     }
         
@@ -269,12 +235,10 @@ public class GameManager : MonoBehaviour
             Debug.LogWarning("GameManager était inactif. Activation maintenant.");
             gameObject.SetActive(true);
         }
-
         if (ballCount > 0)
         {
             StartCoroutine(LaunchBallsSequentially());
             canLaunch = false;
-            // Mettre à jour l'affichage des points de progression
             UpdateProgressionPointsText();
             Debug.Log("GameManager.LaunchBall() appelé. Démarrage de la coroutine.");
         }
@@ -285,19 +249,14 @@ public class GameManager : MonoBehaviour
         if (ballCount > 0)
         {
             GameObject ball = Instantiate(ballPrefab, launchPosition, Quaternion.identity);
-            
-            // Ajuster la taille de la balle si nécessaire
             ball.transform.localScale = new Vector3(ballSize, ballSize, ballSize);
-            
             Ball ballScript = ball.GetComponent<Ball>();
             ballScript.Initialize(launchDirection, this);
             activeBalls.Add(ball);
             ballCount--;
             UpdateBallCountText();
             Debug.Log("GameManager.LaunchBallsSequentially() - Ball launched. Ball count: " + ballCount + ", Active balls: " + activeBalls.Count);
-
             yield return new WaitUntil(() => ballScript.HasCollided());
-
             BallReturned(ball);
             Debug.Log("GameManager.LaunchBallsSequentially() - Ball returned in coroutine.");
         }
@@ -305,18 +264,13 @@ public class GameManager : MonoBehaviour
     
     void InitializeGrid()
     {
-        // Nettoyer les blocs existants
         ClearBlocks();
-        
-        // Nombre de lignes initial plus le niveau actuel (min 3, max 6)
         int rowsToSpawn = Mathf.Clamp(3 + (currentLevel - 1) / 2, 3, 6);
-        
         totalBlockCount = 0;
         for (int row = 0; row < rowsToSpawn; row++)
         {
             SpawnRowAtPosition(row);
         }
-        
         Debug.Log($"Level {currentLevel} initialized with {totalBlockCount} blocks.");
         isLevelCleared = false;
     }
@@ -328,17 +282,14 @@ public class GameManager : MonoBehaviour
             Debug.LogError("Block container is not assigned!");
             return;
         }
-        
         if (blockPrefab == null)
         {
             Debug.LogError("Block prefab is not assigned!");
             return;
         }
-        
         float spacing = 0.2f;
         float spawnChance = baseBlockSpawnChance + blockDensityIncreaseRate * (currentLevel - 1);
-        spawnChance = Mathf.Clamp(spawnChance, 0.5f, 0.9f); // Limiter entre 50% et 90%
-        
+        spawnChance = Mathf.Clamp(spawnChance, 0.5f, 0.9f);
         for (int col = 0; col < gridWidth; col++)
         {
             if (Random.value < spawnChance)
@@ -347,30 +298,22 @@ public class GameManager : MonoBehaviour
                     (col - gridWidth / 2) * (blockSize + spacing) + blockSize / 2,
                     (row - gridHeight / 2) * (blockSize + spacing) + 3f
                 );
-                
                 GameObject block = Instantiate(blockPrefab, position, Quaternion.identity);
                 if (block == null)
                 {
                     Debug.LogError("Failed to instantiate block!");
                     continue;
                 }
-                
                 block.transform.SetParent(blockContainer, true);
-                
                 Block blockScript = block.GetComponent<Block>();
                 if (blockScript == null)
                 {
                     Debug.LogError("Block script not found on instantiated block!");
                     continue;
                 }
-                
-                // Calculer le maximum de points de vie en fonction du niveau
                 int maxHealth = CalculateMaxBlockHealth();
-                
-                // Générer une valeur entre 1 et maxHealth pour les points de vie
                 int value = Random.Range(1, maxHealth + 1);
-                blockScript.Initialize(value, Color.white); // La couleur sera gérée par le Block
-                
+                blockScript.Initialize(value, Color.white);
                 totalBlockCount++;
             }
         }
@@ -378,9 +321,6 @@ public class GameManager : MonoBehaviour
     
     int CalculateMaxBlockHealth()
     {
-        // Niveau 1-3: max 3 PV
-        // Niveau 4-6: max 4 PV
-        // Niveau 7+: max 5 PV
         if (currentLevel <= 3)
             return 3;
         else if (currentLevel <= 6)
@@ -404,27 +344,20 @@ public class GameManager : MonoBehaviour
             Debug.LogWarning("GameManager.BallReturned() - Ball is null or already destroyed.");
             return;
         }
-
         activeBalls.Remove(ball);
         Destroy(ball);
-
-        // Si toutes les balles sont revenues et qu'il n'y en a plus à lancer
         if (activeBalls.Count == 0 && ballCount <= 0)
         {
-            // Vérifier si le niveau est terminé
             if (totalBlockCount > 0)
             {
-                // Si il reste des blocs, c'est une défaite
                 Debug.Log("Game Over - No more balls and blocks remaining!");
                 GameOver();
             }
             else
             {
-                // Si tous les blocs sont détruits, passer au niveau suivant
                 CheckForLevelClear();
             }
         }
-        
         if (ballCount > 0)
         {
             canLaunch = true;
@@ -438,42 +371,27 @@ public class GameManager : MonoBehaviour
     
     public void BlockDestroyed(int value)
     {
-        // Calculer le score
         int scoreGain = (int)(value * (1 + currentCombo * 0.5f));
         score += scoreGain;
-        
-        // Incrémenter le compteur de blocs détruits
         blocksDestroyed++;
-        
-        // Vérifier si on doit donner un point de progression
         if (blocksDestroyed >= blocksForPoint)
         {
             progressionPoints++;
             blocksDestroyed = 0;
-            // Mettre à jour l'affichage des points de progression immédiatement
             UpdateProgressionPointsText();
-            // Sauvegarder la progression
             SaveProgression();
             Debug.Log($"Point de progression gagné! Total: {progressionPoints}");
         }
-        
         UpdateScoreText();
-        
-        // Décrémenter le nombre total de blocs
         totalBlockCount--;
-        
-        // Gestion du combo
         currentCombo++;
         comboTimeRemaining = comboTimeWindow;
         UpdateComboText();
-
-        // Chance de faire apparaître un power-up
         SpawnPowerUp();
     }
     
     void CheckForLevelClear()
     {
-        // Vérifier si tous les blocs ont été détruits
         if (totalBlockCount <= 0 && !isLevelCleared)
         {
             Debug.Log("All blocks destroyed! Starting next level.");
@@ -484,28 +402,15 @@ public class GameManager : MonoBehaviour
     
     IEnumerator StartNextLevel()
     {
-        // Attendre un court délai pour que les power-ups et les effets se terminent
         yield return new WaitForSeconds(1.5f);
-        
-        // Augmenter le niveau
         currentLevel++;
         UpdateLevelText();
-        
-        // Garder le même nombre de balles qu'au niveau précédent
-        // Le joueur devra les acheter dans le menu de progression
         ballCount = initialBallCount + ProgressionManager.Instance.extraBallsPerRun;
         UpdateBallCountText();
-        
-        // Réinitialiser le combo
         currentCombo = 0;
         UpdateComboText();
-        
-        // Initialiser une nouvelle grille avec une difficulté accrue
         InitializeGrid();
-        
-        // Permettre de lancer à nouveau
         canLaunch = true;
-        
         Debug.Log($"Niveau {currentLevel} démarré. Nombre de balles: {ballCount}");
     }
     
@@ -536,13 +441,11 @@ public class GameManager : MonoBehaviour
     void SpawnPowerUp()
     {
         if (powerUpPrefabs == null || powerUpPrefabs.Length == 0) return;
-
         float dropChance = powerUpDropChance;
         if (ProgressionManager.Instance != null)
         {
             dropChance *= ProgressionManager.Instance.powerUpDropRateMultiplier;
         }
-
         if (Random.value < dropChance)
         {
             int randomIndex = Random.Range(0, powerUpPrefabs.Length);
@@ -578,14 +481,8 @@ public class GameManager : MonoBehaviour
     public void GameOver()
     {
         Debug.Log("Game Over - Saving progression and loading progression menu");
-        
-        // Sauvegarder les points de progression
         SaveProgression();
-        
-        // Arrêter toutes les coroutines en cours
         StopAllCoroutines();
-        
-        // Détruire toutes les balles actives
         foreach (GameObject ball in activeBalls.ToArray())
         {
             if (ball != null)
@@ -594,8 +491,6 @@ public class GameManager : MonoBehaviour
             }
         }
         activeBalls.Clear();
-        
-        // Charger le menu de progression
         SceneManager.LoadScene("ProgressionMenu");
     }
 
@@ -629,10 +524,9 @@ public class GameManager : MonoBehaviour
     {
         if (ProgressionManager.Instance != null)
         {
-            // Les dégâts sont maintenant égaux au multiplicateur (qui augmente de 1 par niveau)
             int damage = Mathf.RoundToInt(ProgressionManager.Instance.ballDamageMultiplier);
             Debug.Log($"Calcul des dégâts: multiplicateur={ProgressionManager.Instance.ballDamageMultiplier}, dégâts={damage}");
-            return Mathf.Max(1, damage); // Assure un minimum de 1 dégât
+            return Mathf.Max(1, damage);
         }
         Debug.LogWarning("ProgressionManager.Instance est null dans CalculateBallDamage");
         return baseBallDamage;

@@ -5,17 +5,17 @@ public class MainMenu : MonoBehaviour
 {
     public void StartNewGame()
     {
-        SceneManager.LoadScene("MainScene"); // Remplacez "GameScene" par le nom de votre scène de jeu
+        SceneManager.LoadScene("MainScene");
     }
 
     public void OpenLevelSelection()
     {
-        SceneManager.LoadScene("LevelSelection"); // Remplacez par le nom de votre scène de sélection de niveau
+        SceneManager.LoadScene("LevelSelection");
     }
 
     public void OpenCredits()
     {
-        SceneManager.LoadScene("Credits"); // Remplacez par le nom de votre scène de crédits
+        SceneManager.LoadScene("Credits");
     }
 
     public void QuitGame()

@@ -15,10 +15,9 @@ public class ProgressionMenu : MonoBehaviour
     public TextMeshProUGUI[] upgradeLevelTexts;
 
     private ProgressionManager progressionManager;
-    private const int DAMAGE_UPGRADE_COST = 3; // Coût de 3 points pour l'amélioration des dégâts
-    private const int STANDARD_UPGRADE_COST = 1; // Coût de 1 point pour les autres améliorations
+    private const int DAMAGE_UPGRADE_COST = 3; 
+    private const int STANDARD_UPGRADE_COST = 1; 
 
-    // Niveaux actuels des améliorations
     private int ballDamageLevel = 0;
     private int ballSizeLevel = 0;
     private int ballSpeedLevel = 0;
@@ -29,7 +28,6 @@ public class ProgressionMenu : MonoBehaviour
     {
         Debug.Log("ProgressionMenu.Awake() appelé");
         
-        // Vérifier que tous les tableaux sont initialisés
         if (upgradeButtons == null)
         {
             Debug.LogError("Le tableau upgradeButtons est null!");
@@ -47,7 +45,6 @@ public class ProgressionMenu : MonoBehaviour
             upgradeLevelTexts = new TextMeshProUGUI[5];
         }
 
-        // Vérifier chaque bouton
         for (int i = 0; i < upgradeButtons.Length; i++)
         {
             if (upgradeButtons[i] == null)
@@ -57,7 +54,6 @@ public class ProgressionMenu : MonoBehaviour
             else
             {
                 Debug.Log($"Bouton {i} trouvé: {upgradeButtons[i].name}");
-                // Vérifier que le bouton a un composant Button
                 Button buttonComponent = upgradeButtons[i].GetComponent<Button>();
                 if (buttonComponent == null)
                 {
@@ -66,7 +62,6 @@ public class ProgressionMenu : MonoBehaviour
             }
         }
 
-        // Obtenir ou créer le ProgressionManager
         if (ProgressionManager.Instance == null)
         {
             Debug.Log("Création d'une nouvelle instance de ProgressionManager");
@@ -103,7 +98,6 @@ public class ProgressionMenu : MonoBehaviour
             return;
         }
 
-        // Mettre à jour le texte des points de progression
         if (progressionPointsText != null)
         {
             progressionPointsText.text = $"Points : {progressionManager.progressionPoints}";
@@ -114,7 +108,6 @@ public class ProgressionMenu : MonoBehaviour
             Debug.LogError("progressionPointsText n'est pas assigné!");
         }
 
-        // Mettre à jour les textes des niveaux
         if (upgradeLevelTexts != null)
         {
             if (upgradeLevelTexts.Length > 0 && upgradeLevelTexts[0] != null) 
@@ -133,7 +126,6 @@ public class ProgressionMenu : MonoBehaviour
             Debug.LogError("upgradeLevelTexts n'est pas assigné!");
         }
 
-        // Mettre à jour les boutons d'amélioration
         UpdateUpgradeButtons();
     }
 
@@ -167,14 +159,12 @@ public class ProgressionMenu : MonoBehaviour
                 continue;
             }
 
-            // Vérifier si on a assez de points pour l'amélioration
-            int cost = (i == 0) ? DAMAGE_UPGRADE_COST : STANDARD_UPGRADE_COST; // Le premier bouton (index 0) est pour les dégâts
+            int cost = (i == 0) ? DAMAGE_UPGRADE_COST : STANDARD_UPGRADE_COST; 
             bool canAfford = progressionManager.progressionPoints >= cost;
             Debug.Log($"Bouton {i}: Points disponibles = {progressionManager.progressionPoints}, Coût = {cost}, Peut acheter = {canAfford}");
             
             button.interactable = canAfford;
             
-            // Changer la couleur du bouton en fonction de l'état
             ColorBlock colors = button.colors;
             colors.normalColor = canAfford ? Color.white : Color.gray;
             colors.disabledColor = Color.gray;

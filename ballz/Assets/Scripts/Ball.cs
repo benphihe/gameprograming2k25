@@ -24,19 +24,17 @@ public class Ball : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         if (rb != null)
         {
-            rb.gravityScale = 0f; // Suppression de la gravité
+            rb.gravityScale = 0f; 
             rb.linearDamping = 0f;
             rb.angularDamping = 0f;
             rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-            rb.constraints = RigidbodyConstraints2D.FreezeRotation; // Empêcher la rotation automatique
-            rb.sharedMaterial = CreateBouncyMaterial(); // Ajouter un matériau physique pour améliorer les rebonds
+            rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+            rb.sharedMaterial = CreateBouncyMaterial();
         }
         
-        // Ajouter un tag à la balle pour la détection
         gameObject.tag = "Ball";
     }
 
-    // Créer un matériau physique pour améliorer les rebonds
     private PhysicsMaterial2D CreateBouncyMaterial()
     {
         PhysicsMaterial2D material = new PhysicsMaterial2D("BouncyBallMaterial");
@@ -56,7 +54,6 @@ public class Ball : MonoBehaviour
         gameManager = manager;
         if (rb != null)
         {
-            // Appliquer les multiplicateurs de progression
             float speedMultiplier = 1f;
             float sizeMultiplier = 1f;
 
@@ -69,7 +66,6 @@ public class Ball : MonoBehaviour
             currentSpeed = gameManager.ballSpeed * speedMultiplier;
             rb.linearVelocity = launchDirection * currentSpeed;
             
-            // Appliquer le multiplicateur de taille
             transform.localScale = Vector3.one * gameManager.ballSize * sizeMultiplier;
         }
         lastPosition = transform.position;
@@ -80,52 +76,42 @@ public class Ball : MonoBehaviour
     {
         if (rb != null)
         {
-            // Détection de blocage améliorée
             prevPosition = lastPosition;
             float moveDistance = Vector2.Distance((Vector2)transform.position, lastPosition);
             lastPosition = transform.position;
             lastVelocity = rb.linearVelocity;
 
-            // Vérifier si la balle est coincée
             DetectAndFixStuck(moveDistance);
 
-            // Maintenir une vitesse constante
             if (rb.linearVelocity.magnitude != currentSpeed)
             {
                 rb.linearVelocity = rb.linearVelocity.normalized * currentSpeed;
             }
 
-            // Éviter les trajectoires trop horizontales ou verticales
             EnsureNonExtremePaths();
         }
     }
 
     void DetectAndFixStuck(float moveDistance)
     {
-        // Si la balle bouge très peu
         if (moveDistance < stuckThreshold && rb.linearVelocity.magnitude < currentSpeed * 0.5f)
         {
             stuckTime += Time.fixedDeltaTime;
             
-            // Si la balle est coincée pendant trop longtemps
             if (stuckTime > stuckTimeLimit)
             {
-                // Donner une nouvelle direction à la balle légèrement aléatoire
                 float randomAngle = Random.Range(30f, 150f);
                 Vector2 newDirection = Quaternion.Euler(0, 0, randomAngle) * Vector2.right;
                 rb.linearVelocity = newDirection * currentSpeed;
                 
-                // Déplacer légèrement la balle pour la sortir de la collision
                 transform.position += new Vector3(Random.Range(-0.1f, 0.1f), Random.Range(0.05f, 0.15f), 0);
                 
-                // Réinitialiser le compteur de temps coincé
                 stuckTime = 0f;
                 Debug.Log("Ball unstuck with new direction");
             }
         }
         else
         {
-            // Réinitialiser le compteur si la balle se déplace correctement
             stuckTime = 0f;
         }
     }
@@ -134,14 +120,11 @@ public class Ball : MonoBehaviour
     {
         Vector2 velocity = rb.linearVelocity;
         
-        // Vérifier si la trajectoire est trop horizontale ou verticale
         float absX = Mathf.Abs(velocity.x);
         float absY = Mathf.Abs(velocity.y);
         
-        // Si la trajectoire est trop horizontale ou verticale
         if (absX < 0.1f * currentSpeed || absY < 0.1f * currentSpeed)
         {
-            // Ajouter une légère déviation
             float angleAdjustment = Random.Range(5f, 15f);
             velocity = Quaternion.Euler(0, 0, velocity.x < 0.1f * currentSpeed ? angleAdjustment : -angleAdjustment) * velocity;
             rb.linearVelocity = velocity.normalized * currentSpeed;
@@ -172,12 +155,6 @@ public class Ball : MonoBehaviour
             }
         }
     }
-
-    void OnCollisionExit2D(Collision2D collision)
-    {
-        // Supprimer cette méthode car elle cause des dégâts en double
-    }
-
     public void MarkAsCollided()
     {
         hasCollided = true;
